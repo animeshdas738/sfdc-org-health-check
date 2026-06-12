@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Health Module Score</label>
+    <pluralLabel>Health Module Scores</pluralLabel>
+    <nameField>
+        <label>Health Module Score Name</label>
+        <type>AutoNumber</type>
+        <displayFormat>HMS-{00000}</displayFormat>
+    </nameField>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>ControlledByParent</sharingModel>
+    <description>One record per module per scan. Stores the 0-100 score, weighted contribution, finding counts, and execution metadata for a single health check module.</description>
+</CustomObject>

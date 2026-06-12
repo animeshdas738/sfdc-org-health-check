@@ -1,0 +1,168 @@
+.findings-card {
+    padding: 0;
+}
+
+.findings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #181818;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Severity filter pills */
+.filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.filter-btn {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1px solid #c9d0de;
+    background: #fff;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    color: #444;
+}
+
+.filter-btn:hover { background: #f4f6fa; }
+.filter-btn_active { background: #0176d3; color: #fff; border-color: #0176d3; }
+
+/* Findings list */
+.findings-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.finding-item {
+    border: 1px solid #e0e5ee;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    background: #fff;
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+}
+
+.finding-item:hover {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.finding-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+}
+
+.severity-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.severity-badge_critical { background: #ba0517; color: #fff; }
+.severity-badge_high     { background: #dd7a01; color: #fff; }
+.severity-badge_medium   { background: #f4bc25; color: #514403; }
+.severity-badge_low      { background: #0176d3; color: #fff; }
+.severity-badge_info     { background: #747474; color: #fff; }
+
+.finding-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.finding-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #181818;
+    margin: 0 0 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.finding-meta {
+    font-size: 11px;
+    color: #706e6b;
+    margin: 0;
+}
+
+.chevron-icon {
+    flex-shrink: 0;
+    margin-top: 4px;
+    color: #706e6b;
+}
+
+/* Expanded detail panel */
+.finding-detail {
+    padding: 12px 16px 14px;
+    background: #f8f9fc;
+    border-top: 1px solid #e0e5ee;
+}
+
+.detail-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #706e6b;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 0 0 4px;
+}
+
+.detail-body {
+    font-size: 13px;
+    color: #181818;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.detail-recommendation {
+    color: #014486;
+    background: #e8f4fe;
+    padding: 8px 10px;
+    border-radius: 4px;
+    border-left: 3px solid #0176d3;
+}
+
+/* Empty / loading states */
+.loading-state {
+    display: flex;
+    justify-content: center;
+    padding: 24px 0;
+}
+
+.empty-findings {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+    color: #2e844a;
+}
+
+.empty-findings-icon {
+    --lwc-colorTextIconDefault: #2e844a;
+}

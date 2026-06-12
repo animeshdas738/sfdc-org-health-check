@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Health Scan</label>
+    <pluralLabel>Health Scans</pluralLabel>
+    <nameField>
+        <label>Health Scan Name</label>
+        <type>AutoNumber</type>
+        <displayFormat>HS-{00000}</displayFormat>
+    </nameField>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>ReadWrite</sharingModel>
+    <description>Header record for a single org health scan run. Aggregates composite score and links to all module scores and findings.</description>
+</CustomObject>

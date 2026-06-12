@@ -1,0 +1,140 @@
+<template>
+    <div class="dashboard-root">
+
+        <!-- ═══ Header ══════════════════════════════════════════════════════ -->
+        <div class="dashboard-header">
+            <div class="header-left">
+                <h1 class="dashboard-title">Salesforce Org Health Monitor</h1>
+                <template lwc:if={lastScanInfo}>
+                    <p class="last-scan-text">{orgName} &nbsp;·&nbsp; Last scan: {lastScanInfo}</p>
+                </template>
+            </div>
+            <lightning-button
+                label={scanButtonLabel}
+                icon-name="utility:refresh"
+                variant="brand"
+                disabled={isScanning}
+                onclick={handleRunScan}>
+            </lightning-button>
+        </div>
+
+        <!-- ═══ Banners ══════════════════════════════════════════════════════ -->
+        <template lwc:if={isScanning}>
+            <div class="banner banner_info" role="status">
+                <lightning-spinner size="small" alternative-text="Scan running"></lightning-spinner>
+                <span class="banner-text">Scan in progress — results will refresh automatically.</span>
+            </div>
+        </template>
+
+        <template lwc:if={errorMessage}>
+            <div class="banner banner_error" role="alert">
+                <lightning-icon icon-name="utility:error" size="small" variant="inverse"></lightning-icon>
+                <span class="banner-text">{errorMessage}</span>
+                <button class="banner-dismiss" onclick={clearError}>✕</button>
+            </div>
+        </template>
+
+        <!-- ═══ Dashboard content ════════════════════════════════════════════ -->
+        <template lwc:if={hasScan}>
+            <div class="dashboard-body">
+
+                <!-- Row 1: Gauge + Module Scores -->
+                <div class="slds-grid slds-gutters slds-wrap row-cards">
+
+                    <!-- Gauge panel -->
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                        <div class="panel panel_gauge">
+                            <c-org-health-score-gauge
+                                score={scan.CompositeScore__c}
+                                grade={scan.Grade__c}
+                                label="Overall Health Score">
+                            </c-org-health-score-gauge>
+
+                            <dl class="scan-meta-list">
+                                <div class="meta-row">
+                                    <dt>Status</dt>
+                                    <dd><span class={statusBadgeClass}>{scan.Status__c}</span></dd>
+                                </div>
+                                <div class="meta-row">
+                                    <dt>Trigger</dt>
+                                    <dd>{scan.TriggerType__c}</dd>
+                                </div>
+                                <template lwc:if={scan.ScanDuration__c}>
+                                    <div class="meta-row">
+                                        <dt>Duration</dt>
+                                        <dd>{scanDuration}</dd>
+                                    </div>
+                                </template>
+                                <div class="meta-row">
+                                    <dt>Total findings</dt>
+                                    <dd>{scan.TotalFindings__c}</dd>
+                                </div>
+                                <template lwc:if={scan.CriticalCount__c}>
+                                    <div class="meta-row">
+                                        <dt>Critical</dt>
+                                        <dd><span class="count-pill count-pill_critical">{scan.CriticalCount__c}</span></dd>
+                                    </div>
+                                </template>
+                                <template lwc:if={scan.HighCount__c}>
+                                    <div class="meta-row">
+                                        <dt>High</dt>
+                                        <dd><span class="count-pill count-pill_high">{scan.HighCount__c}</span></dd>
+                                    </div>
+                                </template>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <!-- Module Scores panel -->
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_2-of-3">
+                        <div class="panel">
+                            <c-org-health-module-scores modules={moduleScores}></c-org-health-module-scores>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 2: Trend Chart -->
+                <template lwc:if={hasTrend}>
+                    <div class="panel slds-m-top_medium">
+                        <c-org-health-trend-chart trend={trendData}></c-org-health-trend-chart>
+                    </div>
+                </template>
+
+                <!-- Row 3: Findings -->
+                <div class="panel slds-m-top_medium">
+                    <c-org-health-findings-list
+                        findings={findings}
+                        is-loading={isFindingsLoading}>
+                    </c-org-health-findings-list>
+                </div>
+
+            </div>
+        </template>
+
+        <!-- ═══ Empty / loading states ═══════════════════════════════════════ -->
+        <template lwc:else>
+            <template lwc:if={isLoading}>
+                <div class="empty-state">
+                    <lightning-spinner alternative-text="Loading dashboard..."></lightning-spinner>
+                </div>
+            </template>
+            <template lwc:else>
+                <div class="empty-state">
+                    <lightning-icon icon-name="utility:chart" size="large"
+                                   class="empty-icon"></lightning-icon>
+                    <p class="slds-text-heading_small slds-m-top_large">No scans yet</p>
+                    <p class="slds-text-body_regular slds-m-top_x-small slds-text-color_weak">
+                        Run your first scan to see your org health score and findings.
+                    </p>
+                    <lightning-button
+                        label="Run First Scan"
+                        variant="brand"
+                        class="slds-m-top_large"
+                        onclick={handleRunScan}>
+                    </lightning-button>
+                </div>
+            </template>
+        </template>
+
+    </div>
+</template>

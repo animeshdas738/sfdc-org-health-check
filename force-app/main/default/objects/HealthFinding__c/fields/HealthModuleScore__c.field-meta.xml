@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>HealthModuleScore__c</fullName>
+    <label>Module Score</label>
+    <type>Lookup</type>
+    <referenceTo>HealthModuleScore__c</referenceTo>
+    <relationshipLabel>Health Findings</relationshipLabel>
+    <relationshipName>HealthFindings</relationshipName>
+    <required>false</required>
+</CustomField>

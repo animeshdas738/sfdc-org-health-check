@@ -1,0 +1,69 @@
+<template>
+    <div class="findings-card">
+        <div class="findings-header">
+            <h2 class="slds-text-heading_small section-title">
+                Findings
+                <template lwc:if={totalCount}>
+                    <span class="slds-badge slds-m-left_x-small">{totalCount}</span>
+                </template>
+            </h2>
+            <!-- Severity filter pills -->
+            <div class="filter-bar">
+                <template for:each={filterOptions} for:item="opt">
+                    <button key={opt.value}
+                            class={opt.btnClass}
+                            data-severity={opt.value}
+                            onclick={handleFilterClick}>
+                        {opt.label}
+                    </button>
+                </template>
+            </div>
+        </div>
+
+        <template lwc:if={isLoading}>
+            <div class="loading-state">
+                <lightning-spinner size="small" alternative-text="Loading findings..."></lightning-spinner>
+            </div>
+        </template>
+
+        <template lwc:else>
+            <template lwc:if={hasFindings}>
+                <ul class="findings-list">
+                    <template for:each={displayFindings} for:item="finding">
+                        <li key={finding.Id} class="finding-item"
+                            data-id={finding.Id} onclick={handleFindingClick}>
+                            <div class="finding-row">
+                                <span class={finding.badgeClass}>{finding.Severity__c}</span>
+                                <div class="finding-content">
+                                    <p class="finding-title">{finding.Title__c}</p>
+                                    <p class="finding-meta">
+                                        {finding.Module__c} &nbsp;·&nbsp; {finding.AffectedComponent__c}
+                                    </p>
+                                </div>
+                                <lightning-icon icon-name={finding.chevronIcon}
+                                               size="x-small"
+                                               class="chevron-icon">
+                                </lightning-icon>
+                            </div>
+                            <template lwc:if={finding.isExpanded}>
+                                <div class="finding-detail" onclick={handleDetailClick}>
+                                    <p class="detail-label">What happened</p>
+                                    <p class="detail-body">{finding.Description__c}</p>
+                                    <p class="detail-label slds-m-top_small">Recommendation</p>
+                                    <p class="detail-body detail-recommendation">{finding.Recommendation__c}</p>
+                                </div>
+                            </template>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+            <template lwc:else>
+                <div class="empty-findings">
+                    <lightning-icon icon-name="utility:check" size="medium"
+                                   class="empty-findings-icon"></lightning-icon>
+                    <p class="slds-text-body_regular slds-m-top_small">{emptyMessage}</p>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>

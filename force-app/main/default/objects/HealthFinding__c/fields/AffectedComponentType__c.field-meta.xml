@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AffectedComponentType__c</fullName>
+    <label>Affected Component Type</label>
+    <type>Picklist</type>
+    <required>false</required>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Object</fullName><default>false</default><label>Object</label></value>
+            <value><fullName>Field</fullName><default>false</default><label>Field</label></value>
+            <value><fullName>ApexClass</fullName><default>false</default><label>Apex Class</label></value>
+            <value><fullName>ApexTrigger</fullName><default>false</default><label>Apex Trigger</label></value>
+            <value><fullName>Flow</fullName><default>false</default><label>Flow</label></value>
+            <value><fullName>Profile</fullName><default>false</default><label>Profile</label></value>
+            <value><fullName>PermissionSet</fullName><default>false</default><label>Permission Set</label></value>
+            <value><fullName>Layout</fullName><default>false</default><label>Layout</label></value>
+            <value><fullName>Org</fullName><default>false</default><label>Org</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

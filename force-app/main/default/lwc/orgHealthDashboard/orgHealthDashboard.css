@@ -1,0 +1,153 @@
+.dashboard-root {
+    font-family: 'Salesforce Sans', Arial, sans-serif;
+    background: #f3f3f3;
+    min-height: 100vh;
+    padding: 0;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 20px;
+    background: #032d60;
+    color: #fff;
+}
+
+.header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dashboard-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+}
+
+.last-scan-text {
+    font-size: 12px;
+    color: #b3cbf7;
+    margin: 0;
+}
+
+/* ── Banners ────────────────────────────────────────────────────────────── */
+.banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+}
+
+.banner_info  { background: #e8f4fe; color: #014486; }
+.banner_error { background: #fde8e8; color: #8e0000; }
+
+.banner-text   { flex: 1; }
+.banner-dismiss {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: inherit;
+    padding: 0 4px;
+    opacity: 0.7;
+}
+.banner-dismiss:hover { opacity: 1; }
+
+/* ── Body ───────────────────────────────────────────────────────────────── */
+.dashboard-body {
+    padding: 16px 20px;
+}
+
+.row-cards {
+    margin-bottom: 0;
+}
+
+/* ── Panel (card wrapper) ───────────────────────────────────────────────── */
+.panel {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.panel_gauge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* ── Scan meta list (below gauge) ───────────────────────────────────────── */
+.scan-meta-list {
+    width: 100%;
+    margin-top: 16px;
+    padding: 0;
+}
+
+.meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 12px;
+}
+
+.meta-row:last-child { border-bottom: none; }
+
+.scan-meta-list dt {
+    color: #706e6b;
+    font-weight: 400;
+}
+
+.scan-meta-list dd {
+    margin: 0;
+    font-weight: 600;
+    color: #181818;
+}
+
+/* Status badge */
+.status-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.status-pill_complete { background: #eef7ee; color: #2e844a; }
+.status-pill_failed   { background: #fde8e8; color: #ba0517; }
+.status-pill_progress { background: #e8f4fe; color: #014486; }
+
+/* Count pills (critical/high) */
+.count-pill {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 1px 8px;
+    border-radius: 10px;
+}
+
+.count-pill_critical { background: #fde8e8; color: #ba0517; }
+.count-pill_high     { background: #fef3e2; color: #a94400; }
+
+/* ── Empty / loading state ──────────────────────────────────────────────── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 80px 20px;
+    text-align: center;
+}
+
+.empty-icon {
+    --lwc-colorTextIconDefault: #a8b7cc;
+}

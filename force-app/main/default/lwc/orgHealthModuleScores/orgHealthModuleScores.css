@@ -1,0 +1,99 @@
+.module-scores-card {
+    padding: 0 0.5rem;
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #181818;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.module-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.module-row {
+    padding: 10px 0;
+    border-bottom: 1px solid #e0e5ee;
+}
+
+.module-row:last-child {
+    border-bottom: none;
+}
+
+.module-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.module-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #181818;
+}
+
+.module-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.weight-badge {
+    font-size: 11px;
+    color: #706e6b;
+}
+
+.score-pill {
+    font-size: 13px;
+    font-weight: 700;
+    min-width: 32px;
+    text-align: center;
+}
+
+.score-pill_green { color: #2e844a; }
+.score-pill_amber { color: #dd7a01; }
+.score-pill_red   { color: #ea001e; }
+
+.bar-track {
+    height: 8px;
+    background: #e0e5ee;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.bar-fill_green { background-color: #2e844a; }
+.bar-fill_amber { background-color: #dd7a01; }
+.bar-fill_red   { background-color: #ea001e; }
+
+.finding-counts {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.count-chip {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.count-chip_critical { background: #fde8e8; color: #ba0517; }
+.count-chip_high     { background: #fef3e2; color: #a94400; }
+.count-chip_medium   { background: #fffbe6; color: #514403; }

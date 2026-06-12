@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Org Health Module Config</label>
+    <pluralLabel>Org Health Module Configs</pluralLabel>
+    <description>Custom Metadata Type that stores per-module weight, enabled flag, and display order. Deployable and version-controlled — no code change needed to retune weights.</description>
+</CustomObject>

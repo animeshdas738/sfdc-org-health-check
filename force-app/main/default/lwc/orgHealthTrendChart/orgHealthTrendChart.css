@@ -1,0 +1,33 @@
+.trend-card {
+    padding: 0;
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #181818;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.chart-container {
+    overflow-x: auto;
+}
+
+.trend-svg {
+    width: 100%;
+    min-width: 300px;
+}
+
+.axis-label {
+    font-size: 10px;
+    font-family: 'Salesforce Sans', Arial, sans-serif;
+    font-weight: 600;
+}
+
+.date-label {
+    font-size: 9px;
+    fill: #706e6b;
+    font-family: 'Salesforce Sans', Arial, sans-serif;
+}

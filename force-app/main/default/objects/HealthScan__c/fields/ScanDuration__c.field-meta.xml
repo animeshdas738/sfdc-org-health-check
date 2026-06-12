@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ScanDuration__c</fullName>
+    <label>Scan Duration (seconds)</label>
+    <formula>IF(NOT(ISBLANK(ScanEndTime__c)), (ScanEndTime__c - ScanStartTime__c) * 86400, NULL)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <type>Number</type>
+    <precision>18</precision>
+    <scale>0</scale>
+</CustomField>

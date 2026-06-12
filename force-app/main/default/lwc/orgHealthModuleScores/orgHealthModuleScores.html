@@ -1,0 +1,37 @@
+<template>
+    <div class="module-scores-card">
+        <h2 class="slds-text-heading_small section-title">Module Breakdown</h2>
+        <template lwc:if={hasModules}>
+            <ul class="slds-has-dividers_bottom-space module-list">
+                <template for:each={formattedModules} for:item="mod">
+                    <li key={mod.Module__c} class="module-row">
+                        <div class="module-header">
+                            <span class="module-name">{mod.label}</span>
+                            <div class="module-meta">
+                                <span class="weight-badge">Weight: {mod.weightDisplay}%</span>
+                                <span class={mod.scoreClass}>{mod.scoreDisplay}</span>
+                            </div>
+                        </div>
+                        <div class="bar-track">
+                            <div class={mod.barClass} style={mod.barStyle}></div>
+                        </div>
+                        <div class="finding-counts">
+                            <template lwc:if={mod.CriticalCount__c}>
+                                <span class="count-chip count-chip_critical">{mod.CriticalCount__c} Critical</span>
+                            </template>
+                            <template lwc:if={mod.HighCount__c}>
+                                <span class="count-chip count-chip_high">{mod.HighCount__c} High</span>
+                            </template>
+                            <template lwc:if={mod.MediumCount__c}>
+                                <span class="count-chip count-chip_medium">{mod.MediumCount__c} Medium</span>
+                            </template>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+        </template>
+        <template lwc:else>
+            <p class="slds-text-body_small slds-text-color_weak">No module scores available.</p>
+        </template>
+    </div>
+</template>
