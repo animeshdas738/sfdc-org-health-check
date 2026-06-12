@@ -15,9 +15,31 @@ public class MetadataAnalyserModule extends OrgHealthBaseModule {
         checkDeprecatedFieldTypes();
     }
 
+    // FieldDefinition requires EntityDefinitionId or DurableId in the WHERE clause —
+    // a full table scan is not permitted. This helper fetches the DurableIds of all
+    // custom objects and returns them as a comma-separated quoted string ready for
+    // use in an IN clause, or null when there are no custom objects.
+    private String customEntityIdInClause() {
+        List<Map<String, Object>> entities = extractRecords(
+            toolingQuery(
+                'SELECT DurableId FROM EntityDefinition ' +
+                'WHERE QualifiedApiName LIKE \'%__c\' ' +
+                'AND IsDeprecatedAndHidden = false ' +
+                'LIMIT 200'
+            )
+        );
+        if (entities.isEmpty()) return null;
+        List<String> quoted = new List<String>();
+        for (Map<String, Object> e : entities) {
+            quoted.add('\'' + str(e, 'DurableId') + '\'');
+        }
+        return String.join(quoted, ',');
+    }
+
     private void checkUnusedCustomFields() {
-        // Fields not modified in 2+ years are candidates for review.
-        // Tooling SOQL DateTime literals must be ISO-8601.
+        String entityIdIn = customEntityIdInClause();
+        if (entityIdIn == null) return;
+
         String cutoff = Datetime.newInstance(
             System.today().addDays(-STALE_FIELD_DAYS), Time.newInstance(0,0,0,0)
         ).formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'');
@@ -26,8 +48,8 @@ public class MetadataAnalyserModule extends OrgHealthBaseModule {
             toolingQuery(
                 'SELECT QualifiedApiName, EntityDefinition.QualifiedApiName, LastModifiedDate ' +
                 'FROM FieldDefinition ' +
-                'WHERE IsCustom = true ' +
-                'AND EntityDefinition.IsCustomizable = true ' +
+                'WHERE EntityDefinitionId IN (' + entityIdIn + ') ' +
+                'AND QualifiedApiName LIKE \'%__c\' ' +
                 'AND LastModifiedDate < ' + cutoff +
                 ' LIMIT 200'
             )
@@ -72,7 +94,7 @@ public class MetadataAnalyserModule extends OrgHealthBaseModule {
             toolingQuery(
                 'SELECT QualifiedApiName, Label, LastModifiedDate ' +
                 'FROM EntityDefinition ' +
-                'WHERE IsCustomizable = true AND IsCustom = true ' +
+                'WHERE QualifiedApiName LIKE \'%__c\' ' +
                 'AND IsDeprecatedAndHidden = false ' +
                 'AND LastModifiedDate < ' + cutoff +
                 ' ORDER BY LastModifiedDate ASC ' +
@@ -105,7 +127,6 @@ public class MetadataAnalyserModule extends OrgHealthBaseModule {
 
     private void checkOrphanedLayouts() {
         // Objects with large numbers of validation rules indicate brittle metadata.
-        // Each Tooling API VR record has EntityDefinition as a relationship field.
         List<Map<String, Object>> rows = extractRecords(
             toolingQuery(
                 'SELECT Id, EntityDefinition.QualifiedApiName, Active ' +
@@ -146,13 +167,16 @@ public class MetadataAnalyserModule extends OrgHealthBaseModule {
     private void checkDeprecatedFieldTypes() {
         // Short TextArea fields (255-char max, no formatting) are frequently a mistake —
         // developers reach for LongTextArea when data grows beyond 255 chars.
+        String entityIdIn = customEntityIdInClause();
+        if (entityIdIn == null) return;
+
         List<Map<String, Object>> rows = extractRecords(
             toolingQuery(
                 'SELECT QualifiedApiName, EntityDefinition.QualifiedApiName ' +
                 'FROM FieldDefinition ' +
-                'WHERE IsCustom = true ' +
-                'AND DataType = \'Textarea\' ' +
-                'AND EntityDefinition.IsCustomizable = true ' +
+                'WHERE EntityDefinitionId IN (' + entityIdIn + ') ' +
+                'AND QualifiedApiName LIKE \'%__c\' ' +
+                'AND DataType = \'TextArea\' ' +
                 'LIMIT 200'
             )
         );

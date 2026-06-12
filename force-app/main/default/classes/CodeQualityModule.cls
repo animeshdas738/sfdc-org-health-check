@@ -20,8 +20,7 @@ public class CodeQualityModule extends OrgHealthBaseModule {
             toolingQuery(
                 'SELECT ApexClassOrTrigger.Name, ApexClassOrTrigger.Type, ' +
                 'NumLinesCovered, NumLinesUncovered ' +
-                'FROM ApexCodeCoverageAggregate ' +
-                'WHERE NumLinesCovered + NumLinesUncovered > 10'
+                'FROM ApexCodeCoverageAggregate'
             )
         );
 
@@ -32,7 +31,7 @@ public class CodeQualityModule extends OrgHealthBaseModule {
             Integer covered   = toInt(row.get('NumLinesCovered'));
             Integer uncovered = toInt(row.get('NumLinesUncovered'));
             Integer total     = covered + uncovered;
-            if (total == 0) continue;
+            if (total <= 10) continue; // skip trivially small or empty classes
 
             Decimal pct = ((Decimal) covered / total) * 100;
             Map<String, Object> classRef = (Map<String, Object>) row.get('ApexClassOrTrigger');
@@ -84,6 +83,8 @@ public class CodeQualityModule extends OrgHealthBaseModule {
                 'SELECT Name, Body ' +
                 'FROM ApexClass ' +
                 'WHERE Status = \'Active\' AND NamespacePrefix = null ' +
+                'AND LengthWithoutComments < 100000 ' +
+                'ORDER BY LengthWithoutComments ASC ' +
                 'LIMIT 200'
             )
         );

@@ -12,23 +12,19 @@ public class AutomationAuditorModule extends OrgHealthBaseModule {
     }
 
     private void checkInactiveFlows() {
-        List<Map<String, Object>> rows = extractRecords(
-            toolingQuery(
-                'SELECT ApiName, Label, ProcessType ' +
-                'FROM FlowDefinition ' +
-                'WHERE ActiveVersionId = null ' +
-                'AND ProcessType IN (\'Flow\',\'AutoLaunchedFlow\',\'CustomEvent\',\'ContactRequestFlow\')'
-            )
-        );
+        List<FlowDefinitionView> rows = [
+            SELECT ApiName, Label, ProcessType
+            FROM FlowDefinitionView
+            WHERE IsActive = false
+            AND ProcessType IN ('Flow', 'AutoLaunchedFlow', 'CustomEvent', 'ContactRequestFlow')
+        ];
 
         if (rows.isEmpty()) return;
 
         Map<String, List<String>> byType = new Map<String, List<String>>();
-        for (Map<String, Object> row : rows) {
-            String type  = str(row, 'ProcessType');
-            String label = str(row, 'Label');
-            if (!byType.containsKey(type)) byType.put(type, new List<String>());
-            byType.get(type).add(label);
+        for (FlowDefinitionView row : rows) {
+            if (!byType.containsKey(row.ProcessType)) byType.put(row.ProcessType, new List<String>());
+            byType.get(row.ProcessType).add(row.Label);
         }
 
         for (String type : byType.keySet()) {
@@ -88,17 +84,14 @@ public class AutomationAuditorModule extends OrgHealthBaseModule {
     }
 
     private void checkDuplicateRules() {
-        List<Map<String, Object>> rows = extractRecords(
-            toolingQuery(
-                'SELECT SobjectType ' +
-                'FROM DuplicateRule ' +
-                'WHERE SobjectType IN (\'Account\',\'Contact\',\'Lead\') AND IsActive = true'
-            )
-        );
-
         Set<String> protected_x = new Set<String>();
-        for (Map<String, Object> row : rows) {
-            protected_x.add(str(row, 'SobjectType'));
+        for (DuplicateRule dr : [
+            SELECT SobjectType
+            FROM DuplicateRule
+            WHERE SobjectType IN ('Account', 'Contact', 'Lead')
+            AND IsActive = true
+        ]) {
+            protected_x.add(dr.SobjectType);
         }
 
         for (String obj : new List<String>{'Account', 'Contact', 'Lead'}) {
@@ -122,19 +115,18 @@ public class AutomationAuditorModule extends OrgHealthBaseModule {
     }
 
     private void checkActiveProcessBuilders() {
-        List<Map<String, Object>> rows = extractRecords(
-            toolingQuery(
-                'SELECT ApiName, Label ' +
-                'FROM FlowDefinition ' +
-                'WHERE ActiveVersionId != null AND ProcessType = \'Workflow\''
-            )
-        );
+        List<FlowDefinitionView> rows = [
+            SELECT Label
+            FROM FlowDefinitionView
+            WHERE IsActive = true
+            AND ProcessType = 'Workflow'
+        ];
 
         if (rows.isEmpty()) return;
 
         List<String> pbNames = new List<String>();
-        for (Map<String, Object> row : rows) {
-            pbNames.add(str(row, 'Label'));
+        for (FlowDefinitionView row : rows) {
+            pbNames.add(row.Label);
         }
 
         addFinding(

@@ -5,6 +5,10 @@
 // You can also execute the entire file by running the command:
 //     SFDX: Execute Anonymous Apex with Editor Contents
 
-string tempvar = 'Enter_your_name_here';
+/*string tempvar = 'Enter_your_name_here';
 System.debug('Hello World!');
-System.debug('My name is ' + tempvar);
+System.debug('My name is ' + tempvar);*/
+//System.debug(URL.getOrgDomainUrl().toExternalForm());
+
+Id scanId = OrgHealthScanOrchestrator.startScan();
+System.debug('Scan created: ' + scanId);

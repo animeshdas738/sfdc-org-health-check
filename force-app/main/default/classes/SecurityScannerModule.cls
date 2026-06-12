@@ -12,59 +12,49 @@ public class SecurityScannerModule extends OrgHealthBaseModule {
     }
 
     private void checkModifyAllDataProfiles() {
-        List<Map<String, Object>> profiles = extractRecords(
-            toolingQuery(
-                'SELECT Id, Name, PermissionsModifyAllData, PermissionsViewAllData ' +
-                'FROM Profile ' +
-                'WHERE (PermissionsModifyAllData = true OR PermissionsViewAllData = true) ' +
-                'AND UserType = \'Standard\''
-            )
-        );
+        for (Profile p : [
+            SELECT Name, PermissionsModifyAllData, PermissionsViewAllData
+            FROM Profile
+            WHERE (PermissionsModifyAllData = true OR PermissionsViewAllData = true)
+            AND UserType = 'Standard'
+        ]) {
+            if ('System Administrator'.equalsIgnoreCase(p.Name)) continue;
 
-        for (Map<String, Object> p : profiles) {
-            String name = str(p, 'Name');
-            if ('System Administrator'.equalsIgnoreCase(name)) continue;
-
-            Boolean modifyAll = (Boolean) p.get('PermissionsModifyAllData');
-            String severity = modifyAll == true ? 'Critical' : 'High';
-            String perm     = modifyAll == true ? 'Modify All Data' : 'View All Data';
+            Boolean modifyAll = p.PermissionsModifyAllData;
+            String severity   = modifyAll ? 'Critical' : 'High';
+            String perm       = modifyAll ? 'Modify All Data' : 'View All Data';
 
             addFinding(
                 severity,
                 'Profile Permissions',
                 'Non-admin profile has ' + perm,
-                'Profile "' + name + '" has the ' + perm + ' permission, which bypasses all ' +
+                'Profile "' + p.Name + '" has the ' + perm + ' permission, which bypasses all ' +
                 'object-level and record-level security. Any user on this profile can ' +
-                (modifyAll == true ? 'read and modify' : 'read') + ' every record in the org.',
-                'Remove ' + perm + ' from "' + name + '". Grant specific object CRUD and field-level ' +
+                (modifyAll ? 'read and modify' : 'read') + ' every record in the org.',
+                'Remove ' + perm + ' from "' + p.Name + '". Grant specific object CRUD and field-level ' +
                 'security instead. Where elevated access is needed for specific users, grant it via ' +
                 'a Permission Set rather than embedding it in the profile.',
-                name,
+                p.Name,
                 'Profile'
             );
         }
 
-        // Repeat for custom permission sets
-        List<Map<String, Object>> permSets = extractRecords(
-            toolingQuery(
-                'SELECT Id, Label, PermissionsModifyAllData ' +
-                'FROM PermissionSet ' +
-                'WHERE PermissionsModifyAllData = true AND IsCustom = true'
-            )
-        );
-
-        for (Map<String, Object> ps : permSets) {
+        for (PermissionSet ps : [
+            SELECT Label
+            FROM PermissionSet
+            WHERE PermissionsModifyAllData = true AND IsCustom = true
+        ]) {
             addFinding(
                 'Critical',
                 'Profile Permissions',
-                'Custom Permission Set "' + str(ps, 'Label') + '" has Modify All Data',
-                'Custom Permission Set "' + str(ps, 'Label') + '" grants Modify All Data. ' +
+                'Custom Permission Set "' + ps.Label + '" has Modify All Data',
+                'Custom Permission Set "' + ps.Label + '" grants Modify All Data. ' +
                 'Any user assigned this permission set can read and overwrite every record in the org, ' +
                 'bypassing sharing rules, field-level security, and validation rules.',
                 'Remove Modify All Data from this Permission Set. If broad access is needed for an ' +
                 'integration user or admin tool, scope it to specific objects via object CRUD permissions ' +
                 'rather than a global bypass.',
-                str(ps, 'Label'),
+                ps.Label,
                 'PermissionSet'
             );
         }
@@ -73,22 +63,19 @@ public class SecurityScannerModule extends OrgHealthBaseModule {
     private void checkFLSGaps() {
         // Flag profiles/permission sets that have ViewAllRecords or ModifyAllRecords
         // on core CRM objects — these bypass sharing rules even when they're configured
-        List<Map<String, Object>> rows = extractRecords(
-            toolingQuery(
-                'SELECT SobjectType, Parent.Name, PermissionsViewAllRecords, PermissionsModifyAllRecords ' +
-                'FROM ObjectPermissions ' +
-                'WHERE (PermissionsViewAllRecords = true OR PermissionsModifyAllRecords = true) ' +
-                'AND SobjectType IN (\'Account\',\'Contact\',\'Lead\',\'Opportunity\',\'Case\')'
-            )
-        );
+        List<ObjectPermissions> rows = [
+            SELECT SobjectType, Parent.Name, PermissionsViewAllRecords, PermissionsModifyAllRecords
+            FROM ObjectPermissions
+            WHERE (PermissionsViewAllRecords = true OR PermissionsModifyAllRecords = true)
+            AND SobjectType IN ('Account', 'Contact', 'Lead', 'Opportunity', 'Case')
+        ];
 
         if (rows.isEmpty()) return;
 
         Map<String, List<String>> byObject = new Map<String, List<String>>();
-        for (Map<String, Object> row : rows) {
-            String obj = str(row, 'SobjectType');
-            Map<String, Object> parent = (Map<String, Object>) row.get('Parent');
-            String profileName = parent != null ? str(parent, 'Name') : 'Unknown';
+        for (ObjectPermissions row : rows) {
+            String obj         = row.SobjectType;
+            String profileName = row.Parent?.Name ?? 'Unknown';
             if (!byObject.containsKey(obj)) byObject.put(obj, new List<String>());
             byObject.get(obj).add(profileName);
         }
@@ -126,28 +113,24 @@ public class SecurityScannerModule extends OrgHealthBaseModule {
         if (guestUsers.isEmpty()) return;
 
         for (User gu : guestUsers) {
-            List<Map<String, Object>> objPerms = extractRecords(
-                toolingQuery(
-                    'SELECT SobjectType, PermissionsRead, PermissionsCreate, PermissionsEdit ' +
-                    'FROM ObjectPermissions ' +
-                    'WHERE ParentId = \'' + gu.ProfileId + '\' ' +
-                    'AND PermissionsRead = true ' +
-                    'AND SobjectType LIKE \'%__c\''
-                )
-            );
-
-            if (objPerms.isEmpty()) continue;
+            List<ObjectPermissions> objPerms = [
+                SELECT SobjectType, PermissionsRead, PermissionsCreate, PermissionsEdit
+                FROM ObjectPermissions
+                WHERE ParentId = :gu.ProfileId
+                AND PermissionsRead = true
+            ];
 
             List<String> accessibleObjects = new List<String>();
             List<String> writableObjects   = new List<String>();
-            for (Map<String, Object> perm : objPerms) {
-                String sobj = str(perm, 'SobjectType');
-                accessibleObjects.add(sobj);
-                if ((Boolean) perm.get('PermissionsCreate') == true ||
-                    (Boolean) perm.get('PermissionsEdit') == true) {
-                    writableObjects.add(sobj);
+            for (ObjectPermissions perm : objPerms) {
+                if (!perm.SobjectType.endsWith('__c')) continue;
+                accessibleObjects.add(perm.SobjectType);
+                if (perm.PermissionsCreate || perm.PermissionsEdit) {
+                    writableObjects.add(perm.SobjectType);
                 }
             }
+
+            if (accessibleObjects.isEmpty()) continue;
 
             addFinding(
                 'Critical',
@@ -169,7 +152,7 @@ public class SecurityScannerModule extends OrgHealthBaseModule {
     private void checkPasswordPolicy() {
         // If no Login IP Ranges exist on any profile, the org has no network-based access control
         List<Map<String, Object>> ipRanges = extractRecords(
-            toolingQuery('SELECT Id FROM ProfileIpAddressRange LIMIT 1')
+            toolingQuery('SELECT Id FROM IpAddressRange LIMIT 1')
         );
 
         if (ipRanges.isEmpty()) {

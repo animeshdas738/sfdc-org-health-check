@@ -58,6 +58,108 @@ System.debug('Scan started: ' + scanId);
 
 ---
 
+## Testing After Deployment
+
+### 1. Add the Remote Site Setting
+
+The Tooling API callouts use `URL.getOrgDomainUrl()`. Salesforce blocks same-org callouts unless the domain is whitelisted.
+
+Get your org's domain URL:
+```apex
+System.debug(URL.getOrgDomainUrl().toExternalForm());
+```
+
+Then: **Setup → Security → Remote Site Settings → New**
+- Remote Site Name: `OrgHealthToolingAPI`
+- Remote Site URL: value from the debug log (no trailing slash)
+- Active: ✅
+
+### 2. Verify Custom Metadata records
+
+**Setup → Custom Metadata Types → Manage Records** for each type:
+
+| Type | Expected records |
+|---|---|
+| `OrgHealthModuleConfig__mdt` | 6 records — Security (30%), Automation (20%), CodeQuality (20%), Metadata (10%), DataQuality (10%), GovernorLimits (10%) |
+| `OrgHealthSeverityConfig__mdt` | 5 records — Critical (25pt), High (15pt), Medium (8pt), Low (3pt), Info (1pt) |
+
+If records are missing, redeploy the metadata folder:
+```bash
+sf project deploy start --source-dir force-app/main/default/customMetadata
+```
+
+### 3. Assign object permissions
+
+The controller uses `with sharing`. The running user needs Read/Create/Edit on:
+- `HealthScan__c`
+- `HealthModuleScore__c`
+- `HealthFinding__c`
+
+Grant via the user's Profile or a dedicated Permission Set.
+
+### 4. Smoke test via Anonymous Apex
+
+Run in **Developer Console → Execute Anonymous**:
+```apex
+Id scanId = OrgHealthScanOrchestrator.startScan();
+System.debug('Scan created: ' + scanId);
+```
+
+Monitor **Setup → Apex Jobs** — you should see 6 module jobs queue and complete in sequence. Then verify the result:
+```apex
+HealthScan__c s = [
+    SELECT Status__c, CompositeScore__c, Grade__c,
+           TotalFindings__c, CriticalCount__c, ErrorMessage__c
+    FROM HealthScan__c
+    ORDER BY ScanStartTime__c DESC LIMIT 1
+];
+System.debug(JSON.serializePretty(s));
+```
+
+Check module scores:
+```apex
+for (HealthModuleScore__c ms : [
+    SELECT Module__c, Score__c, Status__c, ErrorMessage__c
+    FROM HealthModuleScore__c
+    ORDER BY CreatedDate DESC LIMIT 6
+]) {
+    System.debug(ms.Module__c + ' → ' + ms.Score__c + ' (' + ms.Status__c + ')');
+}
+```
+
+If any module shows `Status__c = 'Failed'`, read its `ErrorMessage__c` — the most common cause is the missing Remote Site Setting from step 1.
+
+### 5. Add the dashboard to a Lightning page
+
+1. **Setup → Lightning App Builder → New**
+2. Choose **App Page**, name it `Org Health Dashboard`, select **One Region** layout
+3. Search for **Org Health Dashboard** in the component panel and drag it onto the canvas
+4. **Save → Activate** → set visibility → Save
+5. Open the activated page in Lightning Experience
+
+### 6. Test the UI flow
+
+1. The score from the Anonymous Apex scan in step 4 should already appear.
+2. Click **Run New Scan** — the blue "Scan in progress" banner appears.
+3. Wait ~30–60 s for the 6 async jobs to chain through. The page refreshes automatically on completion.
+4. Verify each panel:
+   - **Score gauge** — semicircle fills with red/amber/green and shows score + grade
+   - **Module Breakdown** — 6 bars with per-module scores, weights, and finding chips
+   - **Findings** — click any row to expand description and recommendation
+   - **Score Trend** — appears after running a **second** scan (requires ≥ 2 data points)
+
+### Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| Module `Status__c = 'Failed'`, error has `CALLOUT_FAILED` | Remote Site Setting missing | Step 1 |
+| All modules complete but composite score is 0 | CMT weight records missing | Step 2 |
+| Dashboard shows "No scans yet" after a successful Apex scan | Object permissions | Step 3 |
+| Findings list empty but `TotalFindings__c > 0` | `HealthFinding__c` read permission missing | Step 3 |
+| `UserInfo.getSessionId()` returns null | Session ID not available in async context — enable **API Access Policies** in Session Settings | Setup |
+
+---
+
 ## LWC Dashboard
 
 Wire `OrgHealthDashboardController` to your LWC:
