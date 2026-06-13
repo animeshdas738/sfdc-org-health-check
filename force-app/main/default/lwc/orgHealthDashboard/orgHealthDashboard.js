@@ -34,10 +34,16 @@ export default class OrgHealthDashboard extends LightningElement {
         this.isLoading  = false;
         if (result.data) {
             this.latestScanId = result.data.Id;
+            // Resume polling when page loads into an already-running scan
+            if (result.data.Status__c === 'In Progress' && !this._pollTimer) {
+                this.activeScanId = result.data.Id;
+                this.isScanning   = true;
+                this._startPolling();
+            }
         }
     }
 
-    @wire(getModuleScores)
+    @wire(getModuleScores, { scanId: '$latestScanId' })
     handleModuleScoresWire(result) {
         this._wiredModuleScores = result;
     }
@@ -65,6 +71,8 @@ export default class OrgHealthDashboard extends LightningElement {
     get isFindingsLoading() {
         return !!(this.latestScanId && !this._wiredFindings?.data && !this._wiredFindings?.error);
     }
+
+    get scanStatus() { return this.scan?.Status__c || ''; }
 
     get orgName() { return this.scan?.OrgName__c || ''; }
 

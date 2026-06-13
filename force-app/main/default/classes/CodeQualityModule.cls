@@ -13,6 +13,7 @@ public class CodeQualityModule extends OrgHealthBaseModule {
         checkSoqlInLoops();
         checkLargeClasses();
         checkDeprecatedApiUsage();
+        checkDocumentation();
     }
 
     private void checkTestCoverage() {
@@ -210,6 +211,98 @@ public class CodeQualityModule extends OrgHealthBaseModule {
             'Org',
             'ApexClass'
         );
+    }
+
+    private void checkDocumentation() {
+        List<Map<String, Object>> rows = extractRecords(
+            toolingQuery(
+                'SELECT Name, Body ' +
+                'FROM ApexClass ' +
+                'WHERE Status = \'Active\' AND NamespacePrefix = null ' +
+                'AND LengthWithoutComments < 100000 ' +
+                'ORDER BY LengthWithoutComments ASC ' +
+                'LIMIT 200'
+            )
+        );
+
+        List<String> noDoc      = new List<String>();
+        List<String> partialDoc = new List<String>();
+
+        for (Map<String, Object> row : rows) {
+            String body = str(row, 'Body');
+            String name = str(row, 'Name');
+            if (String.isBlank(body)) continue;
+            // Test classes don't require ApexDoc
+            if (body.toLowerCase().contains('@istest')) continue;
+
+            Integer apexDocCount    = countOccurrences(body, '/**');
+            Integer publicMethods   = countPublicMethods(body);
+
+            if (apexDocCount == 0) {
+                noDoc.add(name);
+            } else if (publicMethods > 0 && apexDocCount < publicMethods) {
+                partialDoc.add(
+                    name + ' (' + apexDocCount + ' comment' +
+                    (apexDocCount == 1 ? '' : 's') +
+                    ' for ' + publicMethods + ' public method' +
+                    (publicMethods == 1 ? '' : 's') + ')'
+                );
+            }
+        }
+
+        if (!noDoc.isEmpty()) {
+            addFinding(
+                'Medium',
+                'Code Documentation',
+                noDoc.size() + ' class(es) have no ApexDoc comments',
+                'The following Apex classes contain no ApexDoc (/** … */) blocks at all: ' +
+                joinCapped(noDoc, 15) +
+                ' Undocumented code increases onboarding time and makes maintenance error-prone.',
+                'Add a class-level /** @description … */ block and a method-level comment for every ' +
+                'public or global method. Use ApexDoc tags: @description, @param, @return, @throws. ' +
+                'VS Code with the Salesforce Extension Pack can generate stubs automatically.',
+                'Org',
+                'ApexClass'
+            );
+        }
+
+        if (!partialDoc.isEmpty()) {
+            addFinding(
+                'Low',
+                'Code Documentation',
+                partialDoc.size() + ' class(es) have fewer ApexDoc comments than public methods',
+                'The following classes appear to have undocumented public methods: ' +
+                joinCapped(partialDoc, 10) +
+                ' Each public or global method should have a /** … */ comment describing its purpose, ' +
+                'parameters, and return value.',
+                'Review each flagged class and add missing ApexDoc blocks. Prioritise methods that are ' +
+                'called by other classes, exposed via @AuraEnabled, or part of a public API contract.',
+                'Org',
+                'ApexClass'
+            );
+        }
+    }
+
+    // Counts non-overlapping occurrences of a fixed substring.
+    private Integer countOccurrences(String text, String sub) {
+        if (String.isBlank(text) || String.isBlank(sub)) return 0;
+        return (text.length() - text.replace(sub, '').length()) / sub.length();
+    }
+
+    // Counts public/global method signatures (lines starting with public/global
+    // that contain parentheses, excluding class, interface, and enum declarations).
+    private Integer countPublicMethods(String body) {
+        Integer count = 0;
+        for (String raw : body.split('\n')) {
+            String line = raw.trim().toLowerCase();
+            if (!(line.startsWith('public ') || line.startsWith('global '))) continue;
+            if (!line.contains('(')) continue;
+            if (line.startsWith('public class')  || line.startsWith('global class'))  continue;
+            if (line.startsWith('public interface') || line.startsWith('global interface')) continue;
+            if (line.startsWith('public enum')   || line.startsWith('global enum'))   continue;
+            count++;
+        }
+        return count;
     }
 
     private String joinCapped(List<String> items, Integer cap) {

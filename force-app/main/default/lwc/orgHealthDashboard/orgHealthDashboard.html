@@ -47,6 +47,7 @@
                             <c-org-health-score-gauge
                                 score={scan.CompositeScore__c}
                                 grade={scan.Grade__c}
+                                status={scanStatus}
                                 label="Overall Health Score">
                             </c-org-health-score-gauge>
 
@@ -92,14 +93,14 @@
                         </div>
                     </div>
                 </div>
-
                 <!-- Row 2: Trend Chart -->
-                <template lwc:if={hasTrend}>
-                    <div class="panel slds-m-top_medium">
-                        <c-org-health-trend-chart trend={trendData}></c-org-health-trend-chart>
-                    </div>
-                </template>
-
+                <div class="panel slds-m-top_medium">
+                    <template lwc:if={hasTrend}>
+                        <div class="panel slds-m-top_medium">
+                            <c-org-health-trend-chart trend={trendData}></c-org-health-trend-chart>
+                        </div>
+                    </template>
+                </div>
                 <!-- Row 3: Findings -->
                 <div class="panel slds-m-top_medium">
                     <c-org-health-findings-list

@@ -43,34 +43,43 @@ public abstract class OrgHealthBaseModule implements Queueable, Database.AllowsC
             errorMsg = (e.getMessage() + '\n' + e.getStackTraceString()).left(32000);
         }
 
-        // Phase 2: all DML after callouts are done
-        OrgHealthModuleConfig__mdt cfg = OrgHealthConstants.getModuleConfigs().get(moduleName);
-        Decimal weight = cfg != null ? cfg.Weight__c : 0;
+        // Phase 2: all DML after callouts are done.
+        // Wrapped in its own try-catch so that a DML failure (e.g. field overflow,
+        // governor limit, validation rule) cannot prevent chainNext() from running.
+        try {
+            OrgHealthModuleConfig__mdt cfg = OrgHealthConstants.getModuleConfigs().get(moduleName);
+            Decimal weight = cfg != null ? cfg.Weight__c : 0;
 
-        HealthModuleScore__c ms = new HealthModuleScore__c(
-            HealthScan__c    = scanId,
-            Module__c        = moduleName,
-            Weight__c        = weight,
-            Status__c        = status,
-            Score__c         = computeScore(),
-            CriticalCount__c = countBySeverity('Critical'),
-            HighCount__c     = countBySeverity('High'),
-            MediumCount__c   = countBySeverity('Medium'),
-            LowCount__c      = countBySeverity('Low'),
-            InfoCount__c     = countBySeverity('Info'),
-            DurationMs__c    = System.currentTimeMillis() - startMs,
-            ErrorMessage__c  = errorMsg
-        );
-        insert ms;
-        this.moduleScoreId = ms.Id;
+            HealthModuleScore__c ms = new HealthModuleScore__c(
+                HealthScan__c    = scanId,
+                Module__c        = moduleName,
+                Weight__c        = weight,
+                Status__c        = status,
+                Score__c         = computeScore(),
+                CriticalCount__c = countBySeverity('Critical'),
+                HighCount__c     = countBySeverity('High'),
+                MediumCount__c   = countBySeverity('Medium'),
+                LowCount__c      = countBySeverity('Low'),
+                InfoCount__c     = countBySeverity('Info'),
+                DurationMs__c    = System.currentTimeMillis() - startMs,
+                ErrorMessage__c  = errorMsg
+            );
+            insert ms;
+            this.moduleScoreId = ms.Id;
 
-        for (HealthFinding__c f : pendingFindings) {
-            f.HealthModuleScore__c = ms.Id;
+            for (HealthFinding__c f : pendingFindings) {
+                f.HealthModuleScore__c = ms.Id;
+            }
+            if (!pendingFindings.isEmpty()) {
+                insert pendingFindings;
+            }
+        } catch (Exception dmlEx) {
+            System.debug(LoggingLevel.ERROR,
+                'Phase 2 DML failed for module ' + moduleName + ': ' +
+                dmlEx.getMessage() + '\n' + dmlEx.getStackTraceString());
         }
-        if (!pendingFindings.isEmpty()) {
-            insert pendingFindings;
-        }
 
+        // Must always execute — keeps the Queueable chain alive regardless of Phase 1/2 outcome
         chainNext();
     }
 
@@ -85,17 +94,23 @@ public abstract class OrgHealthBaseModule implements Queueable, Database.AllowsC
         String affectedComponent,
         String affectedComponentType
     ) {
+        // Truncate Text(255) fields — a joined list of class names can easily exceed 255 chars,
+        // which would cause STRING_TOO_LONG on insert and break the Queueable chain.
+        String safeComponent = (affectedComponent == null ? '' : affectedComponent).left(255);
+        String safeKey = (moduleName + '__' + category + '__' + safeComponent).left(255);
+        String safeTitle = (title == null ? '' : title).left(255);
+
         pendingFindings.add(new HealthFinding__c(
-            HealthScan__c           = scanId,
-            Module__c               = moduleName,
-            Severity__c             = severity,
-            Category__c             = category,
-            Title__c                = title,
-            Description__c          = description,
-            Recommendation__c       = recommendation,
-            AffectedComponent__c    = affectedComponent,
+            HealthScan__c            = scanId,
+            Module__c                = moduleName,
+            Severity__c              = severity,
+            Category__c              = category,
+            Title__c                 = safeTitle,
+            Description__c           = description,
+            Recommendation__c        = recommendation,
+            AffectedComponent__c     = safeComponent,
             AffectedComponentType__c = affectedComponentType,
-            FindingKey__c           = moduleName + '__' + category + '__' + affectedComponent
+            FindingKey__c            = safeKey
         ));
     }
 

@@ -1,68 +1,178 @@
-import { LightningElement, api } from 'lwc';
+import { LightningElement, api, track } from 'lwc';
+import { loadScript }                   from 'lightning/platformResourceLoader';
+import chartjs                          from '@salesforce/resourceUrl/chartjs';
 
-// Plot area constants (within viewBox 0 0 460 195)
-const LEFT = 50, TOP = 15, RIGHT = 440, BOTTOM = 160;
-const W = RIGHT - LEFT;   // 390
-const H = BOTTOM - TOP;   // 145
-
-function scoreToY(score) {
-    return TOP + (100 - Math.min(100, Math.max(0, score || 0))) * H / 100;
-}
-
-function dotColor(score) {
+function gradeColor(score) {
     if (score >= 75) return '#2e844a';
     if (score >= 60) return '#dd7a01';
     return '#ea001e';
 }
 
-function shortDate(isoString) {
-    if (!isoString) return '';
-    const d = new Date(isoString);
+function shortDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 export default class OrgHealthTrendChart extends LightningElement {
     @api trend = [];
 
-    get chartData() {
-        const raw = this.trend || [];
-        if (raw.length < 2) return null;
+    @track _libLoaded = false;
+    _chart;
 
-        const scans = [...raw].reverse(); // oldest → newest left to right
-        const n = scans.length;
-
-        const points = scans.map((s, i) => {
-            const x = parseFloat((n > 1 ? LEFT + i * W / (n - 1) : LEFT + W / 2).toFixed(1));
-            const y = parseFloat(scoreToY(s.CompositeScore__c).toFixed(1));
-            return {
-                key: `pt-${i}`,
-                labelKey: `lb-${i}`,
-                x,
-                y,
-                dotColor: dotColor(s.CompositeScore__c),
-                dateLabel: shortDate(s.ScanStartTime__c),
-                labelRotate: `rotate(-35, ${x}, 178)`,
-                tooltip: `Score: ${Math.round(s.CompositeScore__c || 0)}  •  ${shortDate(s.ScanStartTime__c)}`
-            };
-        });
-
-        const polylinePoints = points.map(p => `${p.x},${p.y}`).join(' ');
-        return { points, polylinePoints };
+    get hasTrend() {
+        return (this.trend || []).length >= 2;
     }
 
-    // Zone geometry — split at grade thresholds 75 (B) and 60 (C)
-    get greenZoneHeight() { return scoreToY(75) - TOP; }          // top to B line
-    get amberZoneTop()    { return scoreToY(75); }
-    get amberZoneHeight() { return scoreToY(60) - scoreToY(75); }
-    get redZoneTop()      { return scoreToY(60); }
-    get redZoneHeight()   { return BOTTOM - scoreToY(60); }
+    connectedCallback() {
+        if (!this._libLoaded) {
+            loadScript(this, chartjs)
+                .then(() => {
+                    this._libLoaded = true;
+                    this._renderChart();
+                })
+                .catch(err => console.error('Chart.js load error:', err));
+        }
+    }
 
-    get thresholdLines() {
-        return [
-            { label: 'A', y: scoreToY(90), labelY: scoreToY(90), textKey: 'tl-a', color: '#2e844a' },
-            { label: 'B', y: scoreToY(75), labelY: scoreToY(75), textKey: 'tl-b', color: '#3ba755' },
-            { label: 'C', y: scoreToY(60), labelY: scoreToY(60), textKey: 'tl-c', color: '#dd7a01' },
-            { label: 'D', y: scoreToY(40), labelY: scoreToY(40), textKey: 'tl-d', color: '#ea001e' }
+    // Re-render whenever the parent passes fresh data
+    renderedCallback() {
+        if (this._libLoaded && this.hasTrend) {
+            this._renderChart();
+        }
+    }
+
+    disconnectedCallback() {
+        if (this._chart) {
+            this._chart.destroy();
+            this._chart = null;
+        }
+    }
+
+    _renderChart() {
+        if (!this._libLoaded || !this.hasTrend) return;
+
+        const canvas = this.template.querySelector('canvas.trend-canvas');
+        if (!canvas) return;
+
+        // Oldest → newest left to right
+        const scans = [...(this.trend || [])].reverse();
+
+        const labels = scans.map(s => shortDate(s.ScanStartTime__c));
+        const scores = scans.map(s => +(s.CompositeScore__c || 0).toFixed(1));
+        const pointColors = scores.map(gradeColor);
+
+        // Grade threshold annotation lines
+        const gradeLines = [
+            { score: 90, color: '#2e844a', label: 'A' },
+            { score: 75, color: '#3ba755', label: 'B' },
+            { score: 60, color: '#dd7a01', label: 'C' },
+            { score: 40, color: '#ea001e', label: 'D' }
         ];
+
+        const config = {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Health Score',
+                        data: scores,
+                        borderColor: '#0176d3',
+                        backgroundColor: 'rgba(1, 118, 211, 0.08)',
+                        pointBackgroundColor: pointColors,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        borderWidth: 2.5,
+                        tension: 0.3,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2.8,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `Score: ${ctx.parsed.y}`
+                        }
+                    },
+                    // Inline annotation via beforeDraw
+                    customGradeLines: true
+                },
+                layout: {
+                    // Right padding reserves canvas space for the A/B/C/D labels
+                    // drawn just outside chartArea.right by the grade-lines plugin
+                    padding: { right: 24 }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20,
+                            color: '#706e6b',
+                            font: { size: 11 }
+                        },
+                        grid: { color: 'rgba(0,0,0,0.06)' }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#706e6b',
+                            font: { size: 11 },
+                            maxRotation: 35,
+                            minRotation: 0
+                        },
+                        grid: { display: false }
+                    }
+                }
+            },
+            plugins: [this._gradeLinesPlugin(gradeLines)]
+        };
+
+        if (this._chart) {
+            this._chart.destroy();
+            this._chart = null;
+        }
+
+        // Chart.js attaches to globalThis.Chart after the UMD script loads
+        // eslint-disable-next-line no-undef
+        this._chart = new Chart(canvas, config);
+    }
+
+    // Custom Chart.js plugin: draws dashed grade threshold lines
+    _gradeLinesPlugin(gradeLines) {
+        return {
+            id: 'gradeLinesPlugin',
+            beforeDraw(chart) {
+                const { ctx, chartArea, scales } = chart;
+                if (!chartArea) return;
+                ctx.save();
+                gradeLines.forEach(gl => {
+                    const y = scales.y.getPixelForValue(gl.score);
+                    ctx.beginPath();
+                    ctx.setLineDash([4, 3]);
+                    ctx.strokeStyle = gl.color;
+                    ctx.globalAlpha = 0.55;
+                    ctx.lineWidth = 1;
+                    ctx.moveTo(chartArea.left, y);
+                    ctx.lineTo(chartArea.right, y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.globalAlpha = 1;
+                    ctx.fillStyle = gl.color;
+                    ctx.font = 'bold 10px Arial';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(gl.label, chartArea.right + 5, y + 3);
+                });
+                ctx.restore();
+            }
+        };
     }
 }

@@ -22,25 +22,41 @@ public class OrgHealthScanOrchestrator {
     // ── Finalisation — called by last module in chain ────────────────────────
 
     public static void finaliseScan(Id scanId) {
-        Decimal composite = 0;
-        for (HealthModuleScore__c ms : [
-            SELECT WeightedContribution__c, Status__c
-            FROM HealthModuleScore__c
-            WHERE HealthScan__c = :scanId
-        ]) {
-            if (ms.Status__c == 'Complete' && ms.WeightedContribution__c != null) {
-                composite += ms.WeightedContribution__c;
+        try {
+            Decimal composite = 0;
+            for (HealthModuleScore__c ms : [
+                SELECT WeightedContribution__c, Status__c
+                FROM HealthModuleScore__c
+                WHERE HealthScan__c = :scanId
+            ]) {
+                if (ms.Status__c == 'Complete' && ms.WeightedContribution__c != null) {
+                    composite += ms.WeightedContribution__c;
+                }
+            }
+            composite = Math.min(100, Math.max(0, composite));
+
+            update new HealthScan__c(
+                Id                = scanId,
+                Status__c         = 'Complete',
+                CompositeScore__c = composite,
+                Grade__c          = OrgHealthConstants.calculateGrade(composite),
+                ScanEndTime__c    = System.now()
+            );
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR,
+                'finaliseScan failed for scan ' + scanId + ': ' + e.getMessage());
+            // Best-effort: mark the scan Failed rather than leaving it In Progress
+            try {
+                update new HealthScan__c(
+                    Id             = scanId,
+                    Status__c      = 'Failed',
+                    ScanEndTime__c = System.now()
+                );
+            } catch (Exception e2) {
+                System.debug(LoggingLevel.ERROR,
+                    'Could not update scan status to Failed: ' + e2.getMessage());
             }
         }
-        composite = Math.min(100, Math.max(0, composite));
-
-        update new HealthScan__c(
-            Id             = scanId,
-            Status__c      = 'Complete',
-            CompositeScore__c = composite,
-            Grade__c       = OrgHealthConstants.calculateGrade(composite),
-            ScanEndTime__c = System.now()
-        );
     }
 
     // ── Private ──────────────────────────────────────────────────────────────

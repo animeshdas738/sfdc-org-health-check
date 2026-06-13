@@ -1,50 +1,9 @@
 <template>
     <div class="trend-card">
         <h2 class="slds-text-heading_small section-title">Score Trend</h2>
-        <template lwc:if={chartData}>
-            <div class="chart-container">
-                <svg viewBox="0 0 460 195" xmlns="http://www.w3.org/2000/svg"
-                     class="trend-svg" role="img" aria-label="Score trend chart">
-                    <!-- Grade zone backgrounds -->
-                    <rect x="50" y="15" width="390" height={greenZoneHeight}
-                          fill="#eef7ee" opacity="0.6"/>
-                    <rect x="50" y={amberZoneTop} width="390" height={amberZoneHeight}
-                          fill="#fef3e2" opacity="0.6"/>
-                    <rect x="50" y={redZoneTop} width="390" height={redZoneHeight}
-                          fill="#fde8e8" opacity="0.6"/>
-                    <!-- Threshold lines -->
-                    <template for:each={thresholdLines} for:item="tl">
-                        <line key={tl.label}
-                              x1="50" y1={tl.y} x2="440" y2={tl.y}
-                              stroke={tl.color} stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>
-                        <text key={tl.textKey} x="44" y={tl.labelY}
-                              text-anchor="end" dominant-baseline="middle"
-                              class="axis-label" fill={tl.color}>{tl.label}</text>
-                    </template>
-                    <!-- Y-axis border line -->
-                    <line x1="50" y1="15" x2="50" y2="160"
-                          stroke="#c9d0de" stroke-width="1"/>
-                    <line x1="50" y1="160" x2="440" y2="160"
-                          stroke="#c9d0de" stroke-width="1"/>
-                    <!-- Score polyline -->
-                    <polyline points={chartData.polylinePoints}
-                              fill="none" stroke="#0176d3" stroke-width="2.5"
-                              stroke-linejoin="round" stroke-linecap="round"/>
-                    <!-- Data points -->
-                    <template for:each={chartData.points} for:item="pt">
-                        <circle key={pt.key} cx={pt.x} cy={pt.y} r="4"
-                                fill={pt.dotColor} stroke="#fff" stroke-width="1.5">
-                            <title>{pt.tooltip}</title>
-                        </circle>
-                    </template>
-                    <!-- X-axis date labels -->
-                    <template for:each={chartData.points} for:item="pt">
-                        <text key={pt.labelKey} x={pt.x} y="178"
-                              text-anchor="middle" dominant-baseline="middle"
-                              class="date-label"
-                              transform={pt.labelRotate}>{pt.dateLabel}</text>
-                    </template>
-                </svg>
+        <template lwc:if={hasTrend}>
+            <div class="chart-wrapper">
+                <canvas class="trend-canvas"></canvas>
             </div>
         </template>
         <template lwc:else>

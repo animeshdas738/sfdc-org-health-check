@@ -26,23 +26,16 @@ public with sharing class OrgHealthDashboardController {
         ];
     }
 
-    /** Returns per-module scores for the latest completed scan. */
+    /** Returns per-module scores for the given scan. */
     @AuraEnabled(cacheable=true)
-    public static List<HealthModuleScore__c> getModuleScores() {
-        List<HealthScan__c> latest = [
-            SELECT Id FROM HealthScan__c
-            WHERE Status__c = 'Complete'
-            ORDER BY ScanStartTime__c DESC
-            LIMIT 1
-        ];
-        if (latest.isEmpty()) return new List<HealthModuleScore__c>();
-
+    public static List<HealthModuleScore__c> getModuleScores(Id scanId) {
+        if (scanId == null) return new List<HealthModuleScore__c>();
         return [
             SELECT Id, Module__c, Score__c, Weight__c, WeightedContribution__c,
                    Status__c, CriticalCount__c, HighCount__c, MediumCount__c,
                    LowCount__c, InfoCount__c, DurationMs__c
             FROM HealthModuleScore__c
-            WHERE HealthScan__c = :latest[0].Id
+            WHERE HealthScan__c = :scanId
             ORDER BY Weight__c DESC
         ];
     }
