@@ -26,16 +26,25 @@ public with sharing class OrgHealthDashboardController {
         ];
     }
 
-    /** Returns per-module scores for the given scan. */
+    /** Returns per-module scores for the given scan, excluding deactivated modules. */
     @AuraEnabled(cacheable=true)
     public static List<HealthModuleScore__c> getModuleScores(Id scanId) {
         if (scanId == null) return new List<HealthModuleScore__c>();
+
+        Set<String> enabledModules = new Set<String>();
+        for (OrgHealthModuleConfig__mdt cfg : OrgHealthConstants.getModuleConfigs().values()) {
+            if (cfg.IsEnabled__c) {
+                enabledModules.add(cfg.Module__c);
+            }
+        }
+
         return [
             SELECT Id, Module__c, Score__c, Weight__c, WeightedContribution__c,
                    Status__c, CriticalCount__c, HighCount__c, MediumCount__c,
                    LowCount__c, InfoCount__c, DurationMs__c
             FROM HealthModuleScore__c
             WHERE HealthScan__c = :scanId
+            AND   Module__c IN :enabledModules
             ORDER BY Weight__c DESC
         ];
     }
@@ -84,6 +93,18 @@ public with sharing class OrgHealthDashboardController {
             FROM HealthScan__c
             WHERE Id = :scanId
             LIMIT 1
+        ];
+    }
+
+    /** Returns per-module progress for a scan in flight, ordered by execution sequence. */
+    @AuraEnabled(cacheable=false)
+    public static List<HealthModuleScore__c> getScanModuleProgress(Id scanId) {
+        if (scanId == null) return new List<HealthModuleScore__c>();
+        return [
+            SELECT Id, Module__c, Status__c, Score__c, DurationMs__c
+            FROM HealthModuleScore__c
+            WHERE HealthScan__c = :scanId
+            ORDER BY CreatedDate ASC
         ];
     }
 }

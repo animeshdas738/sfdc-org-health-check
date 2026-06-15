@@ -139,6 +139,124 @@
 .count-pill_critical { background: #fde8e8; color: #ba0517; }
 .count-pill_high     { background: #fef3e2; color: #a94400; }
 
+/* ── Scan Progress View ─────────────────────────────────────────────────── */
+.scan-progress-container {
+    padding: 32px 20px;
+}
+
+.scan-progress-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 28px 32px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    max-width: 680px;
+    margin: 0 auto;
+}
+
+.scan-progress-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e8e8e8;
+}
+
+.scan-progress-title {
+    margin: 0 0 4px 0;
+    color: #181818;
+}
+
+.scan-progress-text p {
+    margin: 0;
+}
+
+/* Module progress list */
+.module-progress-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.module-progress-row {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.mprow-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mprow-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #181818;
+}
+
+/* Status pills on progress rows */
+.module-status-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.pill_complete { background: #eef7ee; color: #2e844a; }
+.pill_failed   { background: #fde8e8; color: #ba0517; }
+.pill_running  { background: #e8f4fe; color: #014486; }
+.pill_pending  { background: #f3f3f3; color: #706e6b; }
+
+/* Progress track */
+.progress-track {
+    height: 7px;
+    background: #e5e5e5;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: 4px;
+}
+
+.progress-bar_complete {
+    width: 100%;
+    background: #2e844a;
+    transition: width 0.4s ease;
+}
+
+.progress-bar_failed {
+    width: 100%;
+    background: #ba0517;
+}
+
+.progress-bar_pending {
+    width: 0%;
+}
+
+/* Indeterminate sliding animation for the active module */
+.progress-bar_active {
+    width: 35%;
+    position: absolute;
+    background: #0176d3;
+    animation: bar-slide 1.5s ease-in-out infinite;
+}
+
+@keyframes bar-slide {
+    0%   { left: -35%; }
+    60%  { left: 100%; }
+    100% { left: 100%; }
+}
+
 /* ── Empty / loading state ──────────────────────────────────────────────── */
 .empty-state {
     display: flex;

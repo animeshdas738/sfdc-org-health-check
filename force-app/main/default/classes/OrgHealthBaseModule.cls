@@ -31,6 +31,12 @@ public abstract class OrgHealthBaseModule implements Queueable, Database.AllowsC
     // ── Queueable entry point ────────────────────────────────────────────────
 
     public void execute(QueueableContext ctx) {
+        // Attach the finalizer first — it handles chaining to the next module and
+        // marks the scan Failed if this job throws an uncaught exception.
+        // Queueable jobs enqueued from a Finalizer always start at stack depth 1,
+        // so this also eliminates the 5-level Queueable chaining limit.
+        System.attachFinalizer(new OrgHealthChainFinalizer(scanId, moduleName));
+
         Long    startMs  = System.currentTimeMillis();
         String  status   = 'Complete';
         String  errorMsg = null;
@@ -45,7 +51,7 @@ public abstract class OrgHealthBaseModule implements Queueable, Database.AllowsC
 
         // Phase 2: all DML after callouts are done.
         // Wrapped in its own try-catch so that a DML failure (e.g. field overflow,
-        // governor limit, validation rule) cannot prevent chainNext() from running.
+        // governor limit, validation rule) does not prevent the Finalizer from running.
         try {
             OrgHealthModuleConfig__mdt cfg = OrgHealthConstants.getModuleConfigs().get(moduleName);
             Decimal weight = cfg != null ? cfg.Weight__c : 0;
@@ -79,8 +85,7 @@ public abstract class OrgHealthBaseModule implements Queueable, Database.AllowsC
                 dmlEx.getMessage() + '\n' + dmlEx.getStackTraceString());
         }
 
-        // Must always execute — keeps the Queueable chain alive regardless of Phase 1/2 outcome
-        chainNext();
+        // Chaining is handled by OrgHealthChainFinalizer — no explicit chainNext() needed.
     }
 
     // ── Finding helpers for subclasses ───────────────────────────────────────
@@ -172,18 +177,6 @@ public abstract class OrgHealthBaseModule implements Queueable, Database.AllowsC
             if (severity == f.Severity__c) n++;
         }
         return n;
-    }
-
-    private void chainNext() {
-        List<String> chain = OrgHealthConstants.MODULE_CHAIN;
-        Integer idx = chain.indexOf(moduleName);
-        if (idx >= 0 && idx < chain.size() - 1) {
-            System.enqueueJob(
-                OrgHealthModuleFactory.create(chain.get(idx + 1), scanId)
-            );
-        } else {
-            OrgHealthScanOrchestrator.finaliseScan(scanId);
-        }
     }
 
     // ── Tooling API response helpers ─────────────────────────────────────────

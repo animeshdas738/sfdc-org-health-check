@@ -72,12 +72,22 @@ public class OrgHealthScanOrchestrator {
         );
         insert scan;
 
-        System.enqueueJob(
-            OrgHealthModuleFactory.create(
-                OrgHealthConstants.MODULE_CHAIN.get(0),
-                scan.Id
-            )
-        );
+        Map<String, OrgHealthModuleConfig__mdt> configs = OrgHealthConstants.getModuleConfigs();
+        String firstEnabled = null;
+        for (String module : OrgHealthConstants.MODULE_CHAIN) {
+            OrgHealthModuleConfig__mdt cfg = configs.get(module);
+            if (cfg != null && cfg.IsEnabled__c) {
+                firstEnabled = module;
+                break;
+            }
+        }
+
+        if (firstEnabled != null) {
+            System.enqueueJob(OrgHealthModuleFactory.create(firstEnabled, scan.Id));
+        } else {
+            // All modules disabled — finalise immediately
+            OrgHealthScanOrchestrator.finaliseScan(scan.Id);
+        }
 
         return scan.Id;
     }

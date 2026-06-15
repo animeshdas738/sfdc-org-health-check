@@ -1,25 +1,33 @@
 import { LightningElement, wire, track } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
-import getLatestScan    from '@salesforce/apex/OrgHealthDashboardController.getLatestScan';
-import getScoreTrend    from '@salesforce/apex/OrgHealthDashboardController.getScoreTrend';
-import getModuleScores  from '@salesforce/apex/OrgHealthDashboardController.getModuleScores';
-import getFindings      from '@salesforce/apex/OrgHealthDashboardController.getFindings';
-import triggerScan      from '@salesforce/apex/OrgHealthDashboardController.triggerScan';
-import getScanStatus    from '@salesforce/apex/OrgHealthDashboardController.getScanStatus';
+import getLatestScan         from '@salesforce/apex/OrgHealthDashboardController.getLatestScan';
+import getScoreTrend         from '@salesforce/apex/OrgHealthDashboardController.getScoreTrend';
+import getModuleScores       from '@salesforce/apex/OrgHealthDashboardController.getModuleScores';
+import getFindings           from '@salesforce/apex/OrgHealthDashboardController.getFindings';
+import triggerScan           from '@salesforce/apex/OrgHealthDashboardController.triggerScan';
+import getScanStatus         from '@salesforce/apex/OrgHealthDashboardController.getScanStatus';
+import getScanModuleProgress from '@salesforce/apex/OrgHealthDashboardController.getScanModuleProgress';
 
 const POLL_MS = 3000;
 
+const MODULE_CHAIN = ['Security', 'Automation', 'CodeQuality', 'Metadata', 'DataQuality', 'GovernorLimits'];
+const MODULE_LABELS = {
+    Security:       'Security Scanner',
+    Automation:     'Automation Audit',
+    CodeQuality:    'Code Quality',
+    Metadata:       'Metadata Analysis',
+    DataQuality:    'Data Quality',
+    GovernorLimits: 'Governor Limits'
+};
+
 export default class OrgHealthDashboard extends LightningElement {
-    // Reactive props that drive wire parameters
     @track latestScanId;
     @track activeScanId;
-
-    // UI state
-    @track isScanning = false;
-    @track isLoading  = true;
+    @track isScanning   = false;
+    @track isLoading    = true;
     @track errorMessage;
+    @track scanModules  = [];
 
-    // Stored wire result objects (needed for refreshApex)
     _wiredScan;
     _wiredModuleScores;
     _wiredTrend;
@@ -34,7 +42,6 @@ export default class OrgHealthDashboard extends LightningElement {
         this.isLoading  = false;
         if (result.data) {
             this.latestScanId = result.data.Id;
-            // Resume polling when page loads into an already-running scan
             if (result.data.Status__c === 'In Progress' && !this._pollTimer) {
                 this.activeScanId = result.data.Id;
                 this.isScanning   = true;
@@ -53,8 +60,6 @@ export default class OrgHealthDashboard extends LightningElement {
         this._wiredTrend = result;
     }
 
-    // Wire fires only when latestScanId is set (null suppresses the call)
-    // severity: '' → controller returns all findings
     @wire(getFindings, { scanId: '$latestScanId', severity: '' })
     handleFindingsWire(result) {
         this._wiredFindings = result;
@@ -72,11 +77,13 @@ export default class OrgHealthDashboard extends LightningElement {
         return !!(this.latestScanId && !this._wiredFindings?.data && !this._wiredFindings?.error);
     }
 
-    get scanStatus() { return this.scan?.Status__c || ''; }
+    get scanStatus()        { return this.scan?.Status__c || ''; }
+    get orgName()           { return this.scan?.OrgName__c || ''; }
+    get scanButtonLabel()   { return this.isScanning ? 'Scanning...' : 'Run New Scan'; }
 
-    get orgName() { return this.scan?.OrgName__c || ''; }
-
-    get scanButtonLabel() { return this.isScanning ? 'Scanning...' : 'Run New Scan'; }
+    get showProgressView()  { return this.isScanning; }
+    get showDashboard()     { return !this.isScanning && this.hasScan; }
+    get showEmptyState()    { return !this.isScanning && !this.hasScan; }
 
     get lastScanInfo() {
         if (!this.scan?.ScanStartTime__c) return null;
@@ -99,10 +106,57 @@ export default class OrgHealthDashboard extends LightningElement {
         return 'status-pill';
     }
 
+    get completedModuleCount() {
+        return this.scanModules.filter(m => m.Status__c === 'Complete' || m.Status__c === 'Failed').length;
+    }
+
+    get totalModuleCount() { return MODULE_CHAIN.length; }
+
+    get scanModuleRows() {
+        const doneMap = new Map();
+        for (const m of this.scanModules) {
+            doneMap.set(m.Module__c, m.Status__c);
+        }
+        let inProgressAssigned = false;
+        return MODULE_CHAIN.map(name => {
+            const doneStatus = doneMap.get(name);
+            let rowStatus;
+            if (doneStatus) {
+                rowStatus = doneStatus;
+            } else if (!inProgressAssigned) {
+                rowStatus = 'In Progress';
+                inProgressAssigned = true;
+            } else {
+                rowStatus = 'Pending';
+            }
+            const isComplete   = rowStatus === 'Complete';
+            const isFailed     = rowStatus === 'Failed';
+            const isInProgress = rowStatus === 'In Progress';
+            return {
+                key:             name,
+                label:           MODULE_LABELS[name] || name,
+                statusLabel:     isInProgress ? 'Running' : rowStatus === 'Pending' ? 'Queued' : rowStatus,
+                barClass:        'progress-bar' + (
+                                     isComplete   ? ' progress-bar_complete'
+                                   : isFailed     ? ' progress-bar_failed'
+                                   : isInProgress ? ' progress-bar_active'
+                                   :                ' progress-bar_pending'
+                                 ),
+                statusPillClass: 'module-status-pill' + (
+                                     isComplete   ? ' pill_complete'
+                                   : isFailed     ? ' pill_failed'
+                                   : isInProgress ? ' pill_running'
+                                   :                ' pill_pending'
+                                 )
+            };
+        });
+    }
+
     // ── Event handlers ─────────────────────────────────────────────────────
 
     async handleRunScan() {
         this.isScanning   = true;
+        this.scanModules  = [];
         this.errorMessage = null;
         try {
             this.activeScanId = await triggerScan();
@@ -122,11 +176,14 @@ export default class OrgHealthDashboard extends LightningElement {
     _startPolling() {
         this._pollTimer = setInterval(async () => {
             try {
-                const status = await getScanStatus({ scanId: this.activeScanId });
+                const [status, modules] = await Promise.all([
+                    getScanStatus({ scanId: this.activeScanId }),
+                    getScanModuleProgress({ scanId: this.activeScanId })
+                ]);
+                this.scanModules = modules || [];
                 if (status.Status__c !== 'In Progress') {
                     this._stopPolling();
                     this.isScanning = false;
-                    // Refresh all cached wire data now that the scan is done
                     await Promise.all([
                         refreshApex(this._wiredScan),
                         refreshApex(this._wiredModuleScores),

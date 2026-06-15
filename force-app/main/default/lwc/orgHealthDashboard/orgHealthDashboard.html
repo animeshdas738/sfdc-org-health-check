@@ -18,14 +18,7 @@
             </lightning-button>
         </div>
 
-        <!-- ═══ Banners ══════════════════════════════════════════════════════ -->
-        <template lwc:if={isScanning}>
-            <div class="banner banner_info" role="status">
-                <lightning-spinner size="small" alternative-text="Scan running"></lightning-spinner>
-                <span class="banner-text">Scan in progress — results will refresh automatically.</span>
-            </div>
-        </template>
-
+        <!-- ═══ Error banner ════════════════════════════════════════════════ -->
         <template lwc:if={errorMessage}>
             <div class="banner banner_error" role="alert">
                 <lightning-icon icon-name="utility:error" size="small" variant="inverse"></lightning-icon>
@@ -34,8 +27,41 @@
             </div>
         </template>
 
+        <!-- ═══ Scanning progress view ══════════════════════════════════════ -->
+        <template lwc:if={showProgressView}>
+            <div class="scan-progress-container">
+                <div class="scan-progress-card">
+
+                    <div class="scan-progress-heading">
+                        <div class="scan-progress-text">
+                            <h2 class="slds-text-heading_small scan-progress-title">Scan In Progress</h2>
+                            <p class="slds-text-body_small slds-text-color_weak">
+                                Running health checks&hellip; &nbsp;
+                                <strong>{completedModuleCount}</strong> of <strong>{totalModuleCount}</strong> modules complete
+                            </p>
+                        </div>
+                    </div>
+
+                    <ul class="module-progress-list">
+                        <template for:each={scanModuleRows} for:item="mod">
+                            <li key={mod.key} class="module-progress-row">
+                                <div class="mprow-header">
+                                    <span class="mprow-name">{mod.label}</span>
+                                    <span class={mod.statusPillClass}>{mod.statusLabel}</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class={mod.barClass}></div>
+                                </div>
+                            </li>
+                        </template>
+                    </ul>
+
+                </div>
+            </div>
+        </template>
+
         <!-- ═══ Dashboard content ════════════════════════════════════════════ -->
-        <template lwc:if={hasScan}>
+        <template lwc:if={showDashboard}>
             <div class="dashboard-body">
 
                 <!-- Row 1: Gauge + Module Scores -->
@@ -93,6 +119,7 @@
                         </div>
                     </div>
                 </div>
+
                 <!-- Row 2: Trend Chart -->
                 <div class="panel slds-m-top_medium">
                     <template lwc:if={hasTrend}>
@@ -101,6 +128,7 @@
                         </div>
                     </template>
                 </div>
+
                 <!-- Row 3: Findings -->
                 <div class="panel slds-m-top_medium">
                     <c-org-health-findings-list
@@ -113,7 +141,7 @@
         </template>
 
         <!-- ═══ Empty / loading states ═══════════════════════════════════════ -->
-        <template lwc:else>
+        <template lwc:if={showEmptyState}>
             <template lwc:if={isLoading}>
                 <div class="empty-state">
                     <lightning-spinner alternative-text="Loading dashboard..."></lightning-spinner>
