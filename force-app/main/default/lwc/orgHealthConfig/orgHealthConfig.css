@@ -1,0 +1,148 @@
+/* ── Two-panel layout ──────────────────────────────────────────────────────── */
+.config-layout {
+    display: flex;
+    height: 640px;
+    overflow: hidden;
+}
+
+/* ── Left panel ────────────────────────────────────────────────────────────── */
+.panel-modules {
+    width: 260px;
+    min-width: 220px;
+    border-right: 1px solid #dddbda;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-header {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.0625rem;
+    color: #3e3e3c;
+    background: #f3f3f3;
+    border-bottom: 1px solid #dddbda;
+    flex-shrink: 0;
+}
+
+.module-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.module-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f3f2f2;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.module-item:hover {
+    background: #f3f2f2;
+}
+
+.module-item_selected {
+    background: #e8f4ff;
+    border-left: 3px solid #0070d2;
+}
+
+.module-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.module-label {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #16325c;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.module-toggle {
+    flex-shrink: 0;
+}
+
+.module-checkpoint-count {
+    font-size: 0.75rem;
+    color: #706e6b;
+    margin-top: 0.25rem;
+}
+
+/* ── Right panel ───────────────────────────────────────────────────────────── */
+.panel-checkpoints {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-checkpoints .panel-header {
+    border-right: none;
+}
+
+.module-disabled-banner {
+    margin: 0.5rem 1rem;
+    font-size: 0.8125rem;
+}
+
+.checkpoint-table {
+    flex: 1;
+    overflow-y: auto;
+    display: block;
+    margin: 0;
+}
+
+.checkpoint-table thead tr,
+.checkpoint-table tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.checkpoint-table thead {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.cp-label {
+    font-weight: 500;
+    font-size: 0.875rem;
+    display: block;
+}
+
+.cp-key {
+    font-size: 0.7rem;
+    color: #706e6b;
+    font-family: monospace;
+    margin-top: 2px;
+}
+
+.cp-description {
+    font-size: 0.8125rem;
+    color: #3e3e3c;
+    line-height: 1.4;
+}
+
+.col-toggle {
+    width: 80px;
+    text-align: center;
+}
+
+.empty-selection {
+    flex: 1;
+    flex-direction: column;
+    color: #706e6b;
+    text-align: center;
+    padding: 3rem;
+}

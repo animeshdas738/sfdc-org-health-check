@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>High Validation Rule Count</label>
+    <protected>false</protected>
+    <values>
+        <field>CheckpointKey__c</field>
+        <value xsi:type="xsd:string">Metadata.HighValidationRuleCount</value>
+    </values>
+    <values>
+        <field>Module__c</field>
+        <value xsi:type="xsd:string">Metadata</value>
+    </values>
+    <values>
+        <field>Description__c</field>
+        <value xsi:type="xsd:string">Objects with more than 25 active validation rules which increase DML cost and maintenance burden</value>
+    </values>
+    <values>
+        <field>IsEnabledByDefault__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>DisplayOrder__c</field>
+        <value xsi:type="xsd:double">3</value>
+    </values>
+</CustomMetadata>

@@ -76,7 +76,8 @@ public class OrgHealthScanOrchestrator {
         String firstEnabled = null;
         for (String module : OrgHealthConstants.MODULE_CHAIN) {
             OrgHealthModuleConfig__mdt cfg = configs.get(module);
-            if (cfg != null && cfg.IsEnabled__c) {
+            Boolean defaultEnabled = cfg != null ? cfg.IsEnabled__c : false;
+            if (OrgHealthConstants.isEnabled(module, defaultEnabled)) {
                 firstEnabled = module;
                 break;
             }

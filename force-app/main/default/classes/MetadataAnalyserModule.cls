@@ -1,7 +1,7 @@
 public class MetadataAnalyserModule extends OrgHealthBaseModule {
 
-    private static final Integer STALE_FIELD_DAYS   = 730;  // 2 years
-    private static final Integer STALE_OBJECT_DAYS  = 1095; // 3 years
+    private static final Integer STALE_FIELD_DAYS   = 730;
+    private static final Integer STALE_OBJECT_DAYS  = 1095;
     private static final Integer MAX_VLOOKUP_FIELDS = 25;
 
     public MetadataAnalyserModule(Id scanId) {
@@ -15,10 +15,6 @@ public class MetadataAnalyserModule extends OrgHealthBaseModule {
         checkDeprecatedFieldTypes();
     }
 
-    // FieldDefinition requires EntityDefinitionId or DurableId in the WHERE clause —
-    // a full table scan is not permitted. This helper fetches the DurableIds of all
-    // custom objects and returns them as a comma-separated quoted string ready for
-    // use in an IN clause, or null when there are no custom objects.
     private String customEntityIdInClause() {
         List<Map<String, Object>> entities = extractRecords(
             toolingQuery(
@@ -37,6 +33,7 @@ public class MetadataAnalyserModule extends OrgHealthBaseModule {
     }
 
     private void checkUnusedCustomFields() {
+        if (!OrgHealthConstants.isCheckpointEnabled('Metadata.StaleCustomFields')) return;
         String entityIdIn = customEntityIdInClause();
         if (entityIdIn == null) return;
 
@@ -86,6 +83,7 @@ public class MetadataAnalyserModule extends OrgHealthBaseModule {
     }
 
     private void checkUnusedCustomObjects() {
+        if (!OrgHealthConstants.isCheckpointEnabled('Metadata.StaleCustomObjects')) return;
         String cutoff = Datetime.newInstance(
             System.today().addDays(-STALE_OBJECT_DAYS), Time.newInstance(0,0,0,0)
         ).formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'');
@@ -126,7 +124,7 @@ public class MetadataAnalyserModule extends OrgHealthBaseModule {
     }
 
     private void checkOrphanedLayouts() {
-        // Objects with large numbers of validation rules indicate brittle metadata.
+        if (!OrgHealthConstants.isCheckpointEnabled('Metadata.HighValidationRuleCount')) return;
         List<Map<String, Object>> rows = extractRecords(
             toolingQuery(
                 'SELECT Id, EntityDefinition.QualifiedApiName, Active ' +
@@ -165,8 +163,7 @@ public class MetadataAnalyserModule extends OrgHealthBaseModule {
     }
 
     private void checkDeprecatedFieldTypes() {
-        // Short TextArea fields (255-char max, no formatting) are frequently a mistake —
-        // developers reach for LongTextArea when data grows beyond 255 chars.
+        if (!OrgHealthConstants.isCheckpointEnabled('Metadata.ShortTextAreaFields')) return;
         String entityIdIn = customEntityIdInClause();
         if (entityIdIn == null) return;
 

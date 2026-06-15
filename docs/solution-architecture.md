@@ -346,15 +346,105 @@ Weights are snapshotted from `OrgHealthModuleConfig__mdt` at scan time so histor
 
 ---
 
+---
+
+## Configuration Architecture
+
+### Design Goals
+
+- Admins can toggle modules and individual checkpoints on/off without Apex changes.
+- Developers can add new checkpoints by deploying a CMT record — no controller changes needed.
+- Config is version-controlled (CMT defaults) but overrideable at runtime (Custom Setting).
+- Config reads are cache-friendly (Custom Setting `getAll()` is O(1) per transaction).
+
+### Two-Layer Model
+
+```
+Layer 1 — Developer Catalog  (Custom Metadata, version-controlled, sandbox-safe)
+    OrgHealthModuleConfig__mdt      — module weights + IsEnabled default
+    OrgHealthCheckpointConfig__mdt  — checkpoint registry + IsEnabledByDefault
+
+Layer 2 — Admin Overrides    (List Custom Setting, runtime, survives CMT deployments)
+    OrgHealthConfigOverride__c      — Name=configKey, IsEnabled__c=override
+```
+
+At runtime `OrgHealthConstants.isEnabled(configKey, default)` merges the two layers:
+
+```apex
+OrgHealthConfigOverride__c ov = OrgHealthConfigOverride__c.getInstance(configKey);
+return ov != null ? ov.IsEnabled__c : defaultValue;
+```
+
+### Config Gateway — `OrgHealthConstants`
+
+| Method | Purpose |
+|---|---|
+| `isEnabled(configKey, defaultValue)` | Merges CMT default with Custom Setting override |
+| `isCheckpointEnabled(checkpointKey)` | Looks up CMT `IsEnabledByDefault__c`, then calls `isEnabled()` |
+| `getCheckpointConfigs()` | Lazy-loads all `OrgHealthCheckpointConfig__mdt` records keyed by `CheckpointKey__c` |
+
+### Checkpoint Gates in Modules
+
+Every check method in every module begins with a one-line gate:
+
+```apex
+private void checkTestCoverage() {
+    if (!OrgHealthConstants.isCheckpointEnabled('CodeQuality.TestCoverage')) return;
+    // ... check logic
+}
+```
+
+Adding a new checkpoint requires only:
+1. Deploy a new `OrgHealthCheckpointConfig__mdt` record with the chosen `CheckpointKey__c`.
+2. Add `if (!OrgHealthConstants.isCheckpointEnabled('Module.NewKey')) return;` as the first line of the new check method.
+
+The config UI will automatically discover and display the new checkpoint.
+
+### Admin Config UI — `orgHealthConfig` LWC
+
+A two-panel Lightning Web Component accessible as a tab or app page:
+
+- **Left panel**: list of all modules with enable/disable toggles and a `x/y checkpoints active` counter.
+- **Right panel**: checkpoint table for the selected module — label, description, checkpoint key, and a toggle.
+- Changes are **staged locally** (no server round-trip per toggle) and committed via a single **Save Changes** call to `OrgHealthConfigController.saveConfig()`.
+- A banner warns when a module is disabled so the admin understands checkpoint-level changes are ineffective while the parent module is off.
+
+### `OrgHealthConfigController` Apex
+
+| Method | Signature | Notes |
+|---|---|---|
+| `getConfig()` | `@AuraEnabled(cacheable=false) List<ModuleConfig>` | Merges CMT records + Custom Setting overrides; ordered by `MODULE_CHAIN` |
+| `saveConfig(changes)` | `@AuraEnabled void` | Upserts `OrgHealthConfigOverride__c` using Name as natural key; inserts new, updates existing |
+
+Inner wrapper classes: `ModuleConfig`, `CheckpointConfig`, `SavePayload`.
+
+### Impact on Scan Execution
+
+The `OrgHealthChainFinalizer` and `OrgHealthScanOrchestrator` both call `OrgHealthConstants.isEnabled()` before scheduling the next module — disabled modules are skipped entirely, not just hidden from the dashboard.
+
+---
+
 ## Extending the Framework
 
-To add a new health check dimension:
+### Adding a new module
 
 1. Create a class extending `OrgHealthBaseModule`
 2. Implement `runChecks()` — call `addFinding()` for each issue detected
 3. Register the module name in `OrgHealthModuleFactory` (`switch on moduleName`)
 4. Add the module name to `OrgHealthConstants.MODULE_CHAIN`
 5. Add a weight record to `OrgHealthModuleConfig__mdt` (ensure all weights still sum to 100)
-6. Optionally add severity deduction records to `OrgHealthSeverityConfig__mdt`
+6. Add `OrgHealthCheckpointConfig__mdt` records for each new checkpoint
 
-No changes are needed to the orchestrator, base module, or dashboard — the chain and scoring engine adapt automatically.
+### Adding a new checkpoint to an existing module
+
+1. Deploy a new `OrgHealthCheckpointConfig__mdt` record with:
+   - `CheckpointKey__c` = `Module.CheckpointName` (dot-separated)
+   - `Module__c` = existing module key
+   - `IsEnabledByDefault__c` = `true`
+2. Add the gate to the new check method:
+   ```apex
+   if (!OrgHealthConstants.isCheckpointEnabled('Module.CheckpointName')) return;
+   ```
+3. Implement the check logic and call `addFinding()`.
+
+No changes to the controller, orchestrator, finalizer, or config UI are required — the gateway and UI discover new checkpoints automatically.

@@ -52,7 +52,8 @@ public class OrgHealthChainFinalizer implements Finalizer {
         for (Integer i = idx + 1; i < chain.size(); i++) {
             String candidate = chain.get(i);
             OrgHealthModuleConfig__mdt cfg = configs.get(candidate);
-            if (cfg != null && cfg.IsEnabled__c) {
+            Boolean defaultEnabled = cfg != null ? cfg.IsEnabled__c : false;
+            if (OrgHealthConstants.isEnabled(candidate, defaultEnabled)) {
                 return candidate;
             }
         }

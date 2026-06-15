@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>CheckpointKey__c</fullName>
+    <label>Checkpoint Key</label>
+    <type>Text</type>
+    <length>100</length>
+    <required>true</required>
+    <unique>true</unique>
+    <externalId>false</externalId>
+    <description>Dot-separated identifier: Module.CheckName (e.g. Security.ModifyAllData). Must match the key used in OrgHealthConstants.isCheckpointEnabled().</description>
+</CustomField>

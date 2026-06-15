@@ -10,7 +10,6 @@ public class GovernorLimitsModule extends OrgHealthBaseModule {
         super(scanId, OrgHealthConstants.MODULE_GOVERNOR_LIMITS);
     }
 
-    // No callouts — reads OrgLimits and SOQL only
     protected override void runChecks() {
         checkDataStorage();
         checkApiRequestUsage();
@@ -19,6 +18,7 @@ public class GovernorLimitsModule extends OrgHealthBaseModule {
     }
 
     private void checkDataStorage() {
+        if (!OrgHealthConstants.isCheckpointEnabled('GovernorLimits.DataStorage')) return;
         OrgLimit storage = OrgLimits.getMap().get('DataStorageMB');
         if (storage == null || storage.getLimit() == 0) return;
 
@@ -42,6 +42,7 @@ public class GovernorLimitsModule extends OrgHealthBaseModule {
     }
 
     private void checkApiRequestUsage() {
+        if (!OrgHealthConstants.isCheckpointEnabled('GovernorLimits.ApiRequestUsage')) return;
         OrgLimit apiLimit = OrgLimits.getMap().get('DailyApiRequests');
         if (apiLimit == null || apiLimit.getLimit() == 0) return;
 
@@ -64,8 +65,7 @@ public class GovernorLimitsModule extends OrgHealthBaseModule {
     }
 
     private void checkQueryRowUsage() {
-        // OrgLimits does not expose a cumulative daily query-row counter, so we use
-        // the async job backlog and failure rate as a proxy for governor limit pressure.
+        if (!OrgHealthConstants.isCheckpointEnabled('GovernorLimits.AsyncJobQueue')) return;
         Integer batchBacklog = [
             SELECT COUNT() FROM AsyncApexJob
             WHERE Status IN ('Queued', 'Processing')
@@ -87,7 +87,6 @@ public class GovernorLimitsModule extends OrgHealthBaseModule {
             );
         }
 
-        // Also surface jobs that failed today — each failure likely hit a governor limit
         Integer failedToday = [
             SELECT COUNT() FROM AsyncApexJob
             WHERE Status = 'Failed'
@@ -112,6 +111,7 @@ public class GovernorLimitsModule extends OrgHealthBaseModule {
     }
 
     private void checkAsyncApexUsage() {
+        if (!OrgHealthConstants.isCheckpointEnabled('GovernorLimits.AsyncApexUsage')) return;
         OrgLimit apexJobs = OrgLimits.getMap().get('DailyAsyncApexExecutions');
         if (apexJobs == null || apexJobs.getLimit() == 0) return;
 

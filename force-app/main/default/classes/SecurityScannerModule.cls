@@ -12,6 +12,7 @@ public class SecurityScannerModule extends OrgHealthBaseModule {
     }
 
     private void checkModifyAllDataProfiles() {
+        if (!OrgHealthConstants.isCheckpointEnabled('Security.ModifyAllData')) return;
         for (Profile p : [
             SELECT Name, PermissionsModifyAllData, PermissionsViewAllData
             FROM Profile
@@ -61,8 +62,7 @@ public class SecurityScannerModule extends OrgHealthBaseModule {
     }
 
     private void checkFLSGaps() {
-        // Flag profiles/permission sets that have ViewAllRecords or ModifyAllRecords
-        // on core CRM objects — these bypass sharing rules even when they're configured
+        if (!OrgHealthConstants.isCheckpointEnabled('Security.FLSGaps')) return;
         List<ObjectPermissions> rows = [
             SELECT SobjectType, Parent.Name, PermissionsViewAllRecords, PermissionsModifyAllRecords
             FROM ObjectPermissions
@@ -82,7 +82,6 @@ public class SecurityScannerModule extends OrgHealthBaseModule {
 
         for (String obj : byObject.keySet()) {
             List<String> profiles = byObject.get(obj);
-            // Only flag when many profiles bypass sharing — one or two admin profiles is expected
             if (profiles.size() > 3) {
                 addFinding(
                     'High',
@@ -104,6 +103,7 @@ public class SecurityScannerModule extends OrgHealthBaseModule {
     }
 
     private void checkGuestUserAccess() {
+        if (!OrgHealthConstants.isCheckpointEnabled('Security.GuestUserAccess')) return;
         List<User> guestUsers = [
             SELECT Id, Name, ProfileId, Profile.Name
             FROM User
@@ -150,7 +150,7 @@ public class SecurityScannerModule extends OrgHealthBaseModule {
     }
 
     private void checkPasswordPolicy() {
-        // If no Login IP Ranges exist on any profile, the org has no network-based access control
+        if (!OrgHealthConstants.isCheckpointEnabled('Security.PasswordPolicy')) return;
         List<Map<String, Object>> ipRanges = extractRecords(
             toolingQuery('SELECT Id FROM IpAddressRange LIMIT 1')
         );

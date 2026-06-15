@@ -12,6 +12,7 @@ public class AutomationAuditorModule extends OrgHealthBaseModule {
     }
 
     private void checkInactiveFlows() {
+        if (!OrgHealthConstants.isCheckpointEnabled('Automation.InactiveFlows')) return;
         List<FlowDefinitionView> rows = [
             SELECT ApiName, Label, ProcessType
             FROM FlowDefinitionView
@@ -46,6 +47,7 @@ public class AutomationAuditorModule extends OrgHealthBaseModule {
     }
 
     private void checkOverlappingTriggers() {
+        if (!OrgHealthConstants.isCheckpointEnabled('Automation.OverlappingTriggers')) return;
         List<Map<String, Object>> rows = extractRecords(
             toolingQuery(
                 'SELECT TableEnumOrId, Name ' +
@@ -84,6 +86,7 @@ public class AutomationAuditorModule extends OrgHealthBaseModule {
     }
 
     private void checkDuplicateRules() {
+        if (!OrgHealthConstants.isCheckpointEnabled('Automation.MissingDuplicateRules')) return;
         Set<String> protected_x = new Set<String>();
         for (DuplicateRule dr : [
             SELECT SobjectType
@@ -115,6 +118,7 @@ public class AutomationAuditorModule extends OrgHealthBaseModule {
     }
 
     private void checkActiveProcessBuilders() {
+        if (!OrgHealthConstants.isCheckpointEnabled('Automation.ActiveProcessBuilders')) return;
         List<FlowDefinitionView> rows = [
             SELECT Label
             FROM FlowDefinitionView

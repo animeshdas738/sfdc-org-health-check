@@ -32,9 +32,12 @@ public with sharing class OrgHealthDashboardController {
         if (scanId == null) return new List<HealthModuleScore__c>();
 
         Set<String> enabledModules = new Set<String>();
-        for (OrgHealthModuleConfig__mdt cfg : OrgHealthConstants.getModuleConfigs().values()) {
-            if (cfg.IsEnabled__c) {
-                enabledModules.add(cfg.Module__c);
+        Map<String, OrgHealthModuleConfig__mdt> configs = OrgHealthConstants.getModuleConfigs();
+        for (String moduleName : OrgHealthConstants.MODULE_CHAIN) {
+            OrgHealthModuleConfig__mdt cfg = configs.get(moduleName);
+            Boolean defaultEnabled = cfg != null ? cfg.IsEnabled__c : false;
+            if (OrgHealthConstants.isEnabled(moduleName, defaultEnabled)) {
+                enabledModules.add(moduleName);
             }
         }
 

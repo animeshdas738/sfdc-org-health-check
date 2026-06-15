@@ -1,0 +1,102 @@
+<template>
+    <lightning-card title="Org Health Check — Configuration" icon-name="utility:settings">
+        <div slot="actions">
+            <lightning-button
+                label="Save Changes"
+                variant="brand"
+                disabled={saveDisabled}
+                onclick={handleSave}>
+            </lightning-button>
+        </div>
+
+        <template lwc:if={isLoading}>
+            <div class="slds-align_absolute-center slds-p-around_large">
+                <lightning-spinner alternative-text="Loading configuration..." size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <template lwc:else>
+            <div class="config-layout">
+                <!-- Left Panel: Module list -->
+                <div class="panel-modules">
+                    <div class="panel-header">Modules</div>
+                    <ul class="module-list">
+                        <template for:each={modules} for:item="mod">
+                            <li key={mod.moduleKey}
+                                class={mod.listItemClass}
+                                onclick={handleModuleSelect}
+                                data-module-key={mod.moduleKey}>
+                                <div class="module-row">
+                                    <span class="module-label">{mod.label}</span>
+                                    <div class="module-toggle" onclick={stopPropagation}>
+                                        <lightning-input
+                                            type="toggle"
+                                            checked={mod.isEnabled}
+                                            data-config-key={mod.moduleKey}
+                                            data-type="module"
+                                            onchange={handleToggle}
+                                            label={mod.label}
+                                            variant="label-hidden">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                                <div class="module-checkpoint-count">
+                                    {mod.enabledCheckpointCount} / {mod.totalCheckpointCount} checkpoints active
+                                </div>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+
+                <!-- Right Panel: Checkpoint list for selected module -->
+                <div class="panel-checkpoints">
+                    <template lwc:if={selectedModule}>
+                        <div class="panel-header">{selectedModule.label} — Checkpoints</div>
+                        <template lwc:if={selectedModule.isDisabled}>
+                            <div class="slds-notify slds-notify_alert slds-theme_warning module-disabled-banner" role="alert">
+                                <span>This module is disabled. Individual checkpoint toggles have no effect until the module is re-enabled.</span>
+                            </div>
+                        </template>
+                        <table class="slds-table slds-table_cell-buffer slds-table_bordered checkpoint-table">
+                            <thead>
+                                <tr class="slds-line-height_reset">
+                                    <th scope="col" class="slds-text-title_caps">Checkpoint</th>
+                                    <th scope="col" class="slds-text-title_caps">Description</th>
+                                    <th scope="col" class="slds-text-title_caps col-toggle">Enabled</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={selectedModule.checkpoints} for:item="cp">
+                                    <tr key={cp.checkpointKey} class="slds-hint-parent">
+                                        <td>
+                                            <span class="cp-label">{cp.label}</span>
+                                            <div class="cp-key">{cp.checkpointKey}</div>
+                                        </td>
+                                        <td class="cp-description">{cp.description}</td>
+                                        <td class="col-toggle">
+                                            <lightning-input
+                                                type="toggle"
+                                                checked={cp.isEnabled}
+                                                data-config-key={cp.checkpointKey}
+                                                data-type="checkpoint"
+                                                onchange={handleToggle}
+                                                label={cp.label}
+                                                variant="label-hidden">
+                                            </lightning-input>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </template>
+                    <template lwc:else>
+                        <div class="slds-align_absolute-center slds-p-around_large empty-selection">
+                            <lightning-icon icon-name="utility:touch_action" size="large" class="slds-m-bottom_small"></lightning-icon>
+                            <p>Select a module on the left to view and configure its checkpoints.</p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </lightning-card>
+</template>

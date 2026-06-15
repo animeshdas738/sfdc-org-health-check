@@ -1,8 +1,8 @@
 public class CodeQualityModule extends OrgHealthBaseModule {
 
     private static final Integer COVERAGE_THRESHOLD  = 75;
-    private static final Integer MAX_CLASS_CHARS      = 50000; // ~1 000 lines at 50 chars/line
-    private static final Integer MIN_API_VERSION      = 50;    // Summer '20
+    private static final Integer MAX_CLASS_CHARS      = 50000;
+    private static final Integer MIN_API_VERSION      = 50;
 
     public CodeQualityModule(Id scanId) {
         super(scanId, OrgHealthConstants.MODULE_CODE_QUALITY);
@@ -17,6 +17,7 @@ public class CodeQualityModule extends OrgHealthBaseModule {
     }
 
     private void checkTestCoverage() {
+        if (!OrgHealthConstants.isCheckpointEnabled('CodeQuality.TestCoverage')) return;
         List<Map<String, Object>> rows = extractRecords(
             toolingQuery(
                 'SELECT ApexClassOrTrigger.Name, ApexClassOrTrigger.Type, ' +
@@ -32,7 +33,7 @@ public class CodeQualityModule extends OrgHealthBaseModule {
             Integer covered   = toInt(row.get('NumLinesCovered'));
             Integer uncovered = toInt(row.get('NumLinesUncovered'));
             Integer total     = covered + uncovered;
-            if (total <= 10) continue; // skip trivially small or empty classes
+            if (total <= 10) continue;
 
             Decimal pct = ((Decimal) covered / total) * 100;
             Map<String, Object> classRef = (Map<String, Object>) row.get('ApexClassOrTrigger');
@@ -77,8 +78,7 @@ public class CodeQualityModule extends OrgHealthBaseModule {
     }
 
     private void checkSoqlInLoops() {
-        // Fetches class bodies and does a line-by-line heuristic scan.
-        // Limited to 200 classes to stay within heap limits.
+        if (!OrgHealthConstants.isCheckpointEnabled('CodeQuality.SoqlInLoops')) return;
         List<Map<String, Object>> rows = extractRecords(
             toolingQuery(
                 'SELECT Name, Body ' +
@@ -121,7 +121,6 @@ public class CodeQualityModule extends OrgHealthBaseModule {
         Boolean inLoop    = false;
         for (String raw : lines) {
             String line = raw.trim().toLowerCase();
-            // Detect loop start
             if (line.startsWith('for ') || line.startsWith('for(') ||
                 line.startsWith('while ') || line.startsWith('while(')) {
                 inLoop    = true;
@@ -133,7 +132,6 @@ public class CodeQualityModule extends OrgHealthBaseModule {
                     line.contains('database.countquery(')) {
                     return true;
                 }
-                // Exit loop detection when all braces are closed
                 if (loopDepth <= 0) inLoop = false;
             }
         }
@@ -145,6 +143,7 @@ public class CodeQualityModule extends OrgHealthBaseModule {
     }
 
     private void checkLargeClasses() {
+        if (!OrgHealthConstants.isCheckpointEnabled('CodeQuality.LargeClasses')) return;
         List<Map<String, Object>> rows = extractRecords(
             toolingQuery(
                 'SELECT Name, LengthWithoutComments ' +
@@ -181,6 +180,7 @@ public class CodeQualityModule extends OrgHealthBaseModule {
     }
 
     private void checkDeprecatedApiUsage() {
+        if (!OrgHealthConstants.isCheckpointEnabled('CodeQuality.DeprecatedApiVersions')) return;
         List<Map<String, Object>> rows = extractRecords(
             toolingQuery(
                 'SELECT Name, ApiVersion ' +
@@ -214,6 +214,7 @@ public class CodeQualityModule extends OrgHealthBaseModule {
     }
 
     private void checkDocumentation() {
+        if (!OrgHealthConstants.isCheckpointEnabled('CodeQuality.Documentation')) return;
         List<Map<String, Object>> rows = extractRecords(
             toolingQuery(
                 'SELECT Name, Body ' +
@@ -232,11 +233,10 @@ public class CodeQualityModule extends OrgHealthBaseModule {
             String body = str(row, 'Body');
             String name = str(row, 'Name');
             if (String.isBlank(body)) continue;
-            // Test classes don't require ApexDoc
             if (body.toLowerCase().contains('@istest')) continue;
 
-            Integer apexDocCount    = countOccurrences(body, '/**');
-            Integer publicMethods   = countPublicMethods(body);
+            Integer apexDocCount  = countOccurrences(body, '/**');
+            Integer publicMethods = countPublicMethods(body);
 
             if (apexDocCount == 0) {
                 noDoc.add(name);
@@ -283,14 +283,11 @@ public class CodeQualityModule extends OrgHealthBaseModule {
         }
     }
 
-    // Counts non-overlapping occurrences of a fixed substring.
     private Integer countOccurrences(String text, String sub) {
         if (String.isBlank(text) || String.isBlank(sub)) return 0;
         return (text.length() - text.replace(sub, '').length()) / sub.length();
     }
 
-    // Counts public/global method signatures (lines starting with public/global
-    // that contain parentheses, excluding class, interface, and enum declarations).
     private Integer countPublicMethods(String body) {
         Integer count = 0;
         for (String raw : body.split('\n')) {

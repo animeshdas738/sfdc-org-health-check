@@ -11,8 +11,25 @@ HealthScan__c  (1)
     │
     └──── HealthFinding__c  (N per scan, Master-Detail)
 
-OrgHealthModuleConfig__mdt   (6 seed records — module weights)
-OrgHealthSeverityConfig__mdt (5 seed records — severity deductions)
+OrgHealthModuleConfig__mdt      (6 seed records — module weights & enabled flag)
+OrgHealthSeverityConfig__mdt    (5 seed records — severity deductions)
+OrgHealthCheckpointConfig__mdt  (25 seed records — per-check defaults)
+OrgHealthConfigOverride__c      (List Custom Setting — admin runtime toggles)
+```
+
+### Two-Layer Config Pattern
+
+```
+Layer 1 — Developer Catalog (Custom Metadata, version-controlled)
+    OrgHealthModuleConfig__mdt    → module weight, IsEnabled default
+    OrgHealthCheckpointConfig__mdt → checkpoint description, IsEnabledByDefault
+
+Layer 2 — Admin Overrides (List Custom Setting, runtime)
+    OrgHealthConfigOverride__c    → Name = configKey, IsEnabled__c = override value
+
+Runtime merge (OrgHealthConstants):
+    isEnabled(configKey, default)  → Custom Setting override ?? CMT default ?? fallback
+    isCheckpointEnabled(key)       → calls isEnabled() with CMT IsEnabledByDefault__c
 ```
 
 `HealthFinding__c` has two relationships:
@@ -162,6 +179,47 @@ Maps each severity level to its score deduction. Allows tuning the scoring model
 | Medium | 5 | Minor grade impact, cumulative effect significant |
 | Low | 2 | Minimal individual impact |
 | Info | 0 | Informational only, no score impact |
+
+---
+
+## 6. `OrgHealthCheckpointConfig__mdt` — Custom Metadata Type
+
+Registry of every individual health check ("checkpoint") within a module. Deployed with the package; 25 seed records cover all built-in checks. New checkpoints are added by deploying a new CMT record — no Apex changes required.
+
+| Field API Name | Type | Notes |
+|---|---|---|
+| `Label` | Text | Human-readable checkpoint name, shown in the config UI |
+| `CheckpointKey__c` | Text (100), Unique | Dot-separated key: `Module.CheckpointName`, e.g. `Security.FLSGaps` |
+| `Module__c` | Text (50) | Parent module key, e.g. `Security` |
+| `Description__c` | Long Text Area (1000) | Plain-English description shown in the config UI |
+| `IsEnabledByDefault__c` | Checkbox | Default `true`; used as the CMT-layer default by `isCheckpointEnabled()` |
+| `DisplayOrder__c` | Number (3,0) | Sort order within the module panel |
+
+**Checkpoint keys by module:**
+
+| Module | Checkpoint Keys |
+|---|---|
+| Security | `Security.ModifyAllData`, `Security.FLSGaps`, `Security.GuestUserAccess`, `Security.PasswordPolicy` |
+| Automation | `Automation.InactiveFlows`, `Automation.OverlappingTriggers`, `Automation.MissingDuplicateRules`, `Automation.ActiveProcessBuilders` |
+| CodeQuality | `CodeQuality.TestCoverage`, `CodeQuality.SoqlInLoops`, `CodeQuality.LargeClasses`, `CodeQuality.DeprecatedApiVersions`, `CodeQuality.Documentation` |
+| Metadata | `Metadata.StaleCustomFields`, `Metadata.StaleCustomObjects`, `Metadata.HighValidationRuleCount`, `Metadata.ShortTextAreaFields` |
+| DataQuality | `DataQuality.DuplicateAccounts`, `DataQuality.DuplicateContacts`, `DataQuality.BlankKeyFields`, `DataQuality.StaleRecords` |
+| GovernorLimits | `GovernorLimits.DataStorage`, `GovernorLimits.ApiRequestUsage`, `GovernorLimits.AsyncJobQueue`, `GovernorLimits.AsyncApexUsage` |
+
+---
+
+## 7. `OrgHealthConfigOverride__c` — List Custom Setting
+
+Stores admin-set overrides for module and checkpoint enablement at runtime. Uses the `Name` field as the primary key (= `configKey`), enabling O(1) cache-friendly lookups via `getInstance(name)` without a SOQL governor limit hit.
+
+| Field API Name | Type | Notes |
+|---|---|---|
+| `Name` | Text (40) | Primary key = `configKey` (e.g. `Security`, `Security.FLSGaps`) |
+| `IsEnabled__c` | Checkbox | `true` = enabled override, `false` = disabled override |
+
+- A record's absence means "use the CMT default."
+- `OrgHealthConfigOverride__c.getAll()` returns a `Map<String, OrgHealthConfigOverride__c>` — one call per transaction covers all modules and all checkpoints.
+- Managed by the `orgHealthConfig` LWC via `OrgHealthConfigController.saveConfig()`.
 
 ---
 

@@ -8,7 +8,6 @@ public class DataQualityModule extends OrgHealthBaseModule {
         super(scanId, OrgHealthConstants.MODULE_DATA_QUALITY);
     }
 
-    // No callouts — all checks use regular SOQL aggregates
     protected override void runChecks() {
         checkDuplicateAccounts();
         checkDuplicateContacts();
@@ -17,6 +16,7 @@ public class DataQualityModule extends OrgHealthBaseModule {
     }
 
     private void checkDuplicateAccounts() {
+        if (!OrgHealthConstants.isCheckpointEnabled('DataQuality.DuplicateAccounts')) return;
         AggregateResult[] groups = [
             SELECT Name, COUNT(Id) cnt
             FROM Account
@@ -49,6 +49,7 @@ public class DataQualityModule extends OrgHealthBaseModule {
     }
 
     private void checkDuplicateContacts() {
+        if (!OrgHealthConstants.isCheckpointEnabled('DataQuality.DuplicateContacts')) return;
         AggregateResult[] groups = [
             SELECT Email, COUNT(Id) cnt
             FROM Contact
@@ -82,13 +83,13 @@ public class DataQualityModule extends OrgHealthBaseModule {
     }
 
     private void checkBlankRequiredFields() {
+        if (!OrgHealthConstants.isCheckpointEnabled('DataQuality.BlankKeyFields')) return;
         checkBlankRate('Lead',        'Phone',     'Phone',     'Lead');
         checkBlankRate('Lead',        'Company',   'Company',   'Lead');
         checkBlankRate('Contact',     'Email',     'Email',     'Contact');
         checkBlankRate('Opportunity', 'AccountId', 'linked Account', 'Opportunity');
     }
 
-    // objectApiName and fieldApiName are always trusted, hardcoded literals — no injection risk
     @SuppressWarnings('PMD.ApexSoqlInjection')
     private void checkBlankRate(
         String objectApiName,
@@ -124,6 +125,7 @@ public class DataQualityModule extends OrgHealthBaseModule {
     }
 
     private void checkStaleRecords() {
+        if (!OrgHealthConstants.isCheckpointEnabled('DataQuality.StaleRecords')) return;
         Date opportunityCutoff = System.today().addDays(-STALE_OPPORTUNITY_DAYS);
         Integer staleOpps = [
             SELECT COUNT() FROM Opportunity
