@@ -68,7 +68,7 @@
                 <div class="slds-grid slds-gutters slds-wrap row-cards">
 
                     <!-- Gauge panel -->
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
                         <div class="panel panel_gauge">
                             <c-org-health-score-gauge
                                 score={scan.CompositeScore__c}
@@ -113,20 +113,21 @@
                     </div>
 
                     <!-- Module Scores panel -->
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_2-of-3">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
                         <div class="panel">
                             <c-org-health-module-scores modules={moduleScores}></c-org-health-module-scores>
                         </div>
                     </div>
-                </div>
-
-                <!-- Row 2: Trend Chart -->
-                <div class="panel slds-m-top_medium">
-                    <template lwc:if={hasTrend}>
-                        <div class="panel slds-m-top_medium">
-                            <c-org-health-trend-chart trend={trendData}></c-org-health-trend-chart>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_2-of-4">
+                        <!-- Row 2: Trend Chart -->
+                        <div class="panel">
+                            <template lwc:if={hasTrend}>
+                                <div class="panel slds-m-top_medium">
+                                    <c-org-health-trend-chart trend={trendData}></c-org-health-trend-chart>
+                                </div>
+                            </template>
                         </div>
-                    </template>
+                    </div>
                 </div>
 
                 <!-- Row 3: Findings -->

@@ -94,7 +94,7 @@ export default class OrgHealthTrendChart extends LightningElement {
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                aspectRatio: 2.8,
+                aspectRatio: 1.75,
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
                     legend: { display: false },
