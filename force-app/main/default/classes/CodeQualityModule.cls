@@ -1,9 +1,18 @@
+/**
+ * Code quality checks for Apex test coverage, anti-patterns, and API hygiene.
+ * Detects zero/low test coverage, SOQL inside loops, oversized classes,
+ * deprecated API versions, and undocumented code.
+ */
 public class CodeQualityModule extends OrgHealthBaseModule {
 
     private static final Integer COVERAGE_THRESHOLD  = 75;
     private static final Integer MAX_CLASS_CHARS      = 50000;
     private static final Integer MIN_API_VERSION      = 50;
 
+    /**
+     * Constructs the Code Quality module executor.
+     * @param scanId The HealthScan__c ID to write module results to
+     */
     public CodeQualityModule(Id scanId) {
         super(scanId, OrgHealthConstants.MODULE_CODE_QUALITY);
     }

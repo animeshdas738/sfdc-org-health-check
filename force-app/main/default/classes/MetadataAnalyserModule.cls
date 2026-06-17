@@ -1,9 +1,17 @@
+/**
+ * Metadata health checks for stale or over-complex configuration artifacts.
+ * Detects unused custom fields/objects, high validation rule counts, and deprecated field types.
+ */
 public class MetadataAnalyserModule extends OrgHealthBaseModule {
 
     private static final Integer STALE_FIELD_DAYS   = 730;
     private static final Integer STALE_OBJECT_DAYS  = 1095;
     private static final Integer MAX_VLOOKUP_FIELDS = 25;
 
+    /**
+     * Constructs the Metadata module executor.
+     * @param scanId The HealthScan__c ID to write module results to
+     */
     public MetadataAnalyserModule(Id scanId) {
         super(scanId, OrgHealthConstants.MODULE_METADATA);
     }

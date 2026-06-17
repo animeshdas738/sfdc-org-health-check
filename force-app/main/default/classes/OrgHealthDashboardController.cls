@@ -1,5 +1,14 @@
+/**
+ * Apex controller backing the orgHealthDashboard LWC.
+ * Provides scan results, module scores, findings, and scan orchestration endpoints.
+ */
 public with sharing class OrgHealthDashboardController {
 
+    /**
+     * Returns the most recent scan (of any status).
+     * Used to hydrate the dashboard on initial load.
+     * @return The latest HealthScan__c record, or null if no scans exist
+     */
     @AuraEnabled(cacheable=true)
     public static HealthScan__c getLatestScan() {
         List<HealthScan__c> rows = [
@@ -14,7 +23,12 @@ public with sharing class OrgHealthDashboardController {
         return rows.isEmpty() ? null : rows[0];
     }
 
-    /** Returns the last numScans completed scans for the trend chart. */
+    /**
+     * Returns the most recent completed scans in reverse chronological order.
+     * Used to populate the Score Trend chart.
+     * @param numScans The maximum number of scans to return
+     * @return List of completed HealthScan__c records (newest first)
+     */
     @AuraEnabled(cacheable=true)
     public static List<HealthScan__c> getScoreTrend(Integer numScans) {
         return [
@@ -26,7 +40,12 @@ public with sharing class OrgHealthDashboardController {
         ];
     }
 
-    /** Returns per-module scores for the given scan, excluding deactivated modules. */
+    /**
+     * Returns per-module health scores for a completed scan.
+     * Automatically filters out modules disabled via OrgHealthModuleConfig__mdt or admin overrides.
+     * @param scanId The HealthScan__c ID
+     * @return List of enabled HealthModuleScore__c records (ordered by weight descending)
+     */
     @AuraEnabled(cacheable=true)
     public static List<HealthModuleScore__c> getModuleScores(Id scanId) {
         if (scanId == null) return new List<HealthModuleScore__c>();
@@ -52,7 +71,13 @@ public with sharing class OrgHealthDashboardController {
         ];
     }
 
-    /** Returns findings for a specific scan, optionally filtered by severity. */
+    /**
+     * Returns findings (issues) detected in a scan.
+     * Optionally filtered by severity level.
+     * @param scanId The HealthScan__c ID
+     * @param severity Optional: filter to one severity level (Critical, High, Medium, Low, Info)
+     * @return List of HealthFinding__c records (ordered by severity ascending, capped at 500)
+     */
     @AuraEnabled(cacheable=true)
     public static List<HealthFinding__c> getFindings(Id scanId, String severity) {
         if (String.isNotBlank(severity)) {
@@ -77,15 +102,22 @@ public with sharing class OrgHealthDashboardController {
         ];
     }
 
-    /** Kicks off a new manual scan and returns the HealthScan__c Id for polling. */
+    /**
+     * Initiates a new manual health scan (triggered from the dashboard).
+     * Returns immediately; LWC polls getScanStatus() to track progress.
+     * @return The ID of the newly created HealthScan__c record
+     */
     @AuraEnabled
     public static Id triggerScan() {
         return OrgHealthScanOrchestrator.startScan();
     }
 
     /**
-     * Lightweight poll endpoint. LWC calls this on a short interval after triggerScan()
-     * until Status__c transitions out of 'In Progress'.
+     * Retrieves the current status of an in-flight or completed scan.
+     * Called by the LWC on a ~3-second poll interval to detect completion.
+     * Not cacheable (status changes frequently).
+     * @param scanId The HealthScan__c ID
+     * @return The scan header with status and aggregate finding counts
      */
     @AuraEnabled(cacheable=false)
     public static HealthScan__c getScanStatus(Id scanId) {
@@ -99,7 +131,13 @@ public with sharing class OrgHealthDashboardController {
         ];
     }
 
-    /** Returns per-module progress for a scan in flight, ordered by execution sequence. */
+    /**
+     * Returns per-module progress records for a scan in flight.
+     * Ordered by creation time (execution sequence) so the LWC can render a progress bar for each module.
+     * Not cacheable (records are created as modules complete).
+     * @param scanId The HealthScan__c ID
+     * @return List of HealthModuleScore__c records ordered by module execution sequence
+     */
     @AuraEnabled(cacheable=false)
     public static List<HealthModuleScore__c> getScanModuleProgress(Id scanId) {
         if (scanId == null) return new List<HealthModuleScore__c>();

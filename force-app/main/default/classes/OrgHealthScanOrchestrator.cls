@@ -1,26 +1,47 @@
+/**
+ * Orchestrator for health scan execution.
+ * Creates a new HealthScan__c record and enqueues the first enabled module in the chain.
+ * Also handles scan finalisation (composite score calculation) when all modules complete.
+ */
 public class OrgHealthScanOrchestrator {
 
     // ── Public entry points ──────────────────────────────────────────────────
 
-    /** Called from LWC trigger button. */
+    /**
+     * Initiates a health scan triggered manually from the dashboard LWC.
+     * @return The ID of the newly created HealthScan__c record
+     */
     @AuraEnabled
     public static Id startScan() {
         return initiateScan('Manual');
     }
 
-    /** Called by OrgHealthScheduler. */
+    /**
+     * Initiates a health scan triggered by a scheduled Apex job.
+     * @return The ID of the newly created HealthScan__c record
+     */
     public static Id startScheduledScan() {
         return initiateScan('Scheduled');
     }
 
-    /** For external REST API consumers. */
+    /**
+     * Initiates a health scan via REST API.
+     * @return The ID of the newly created HealthScan__c record
+     */
     @AuraEnabled
     public static Id startApiScan() {
         return initiateScan('API');
     }
 
-    // ── Finalisation — called by last module in chain ────────────────────────
+    // ── Finalisation — called by OrgHealthChainFinalizer after last module ────
 
+    /**
+     * Computes and persists the composite score after all modules complete.
+     * Sums the weighted contributions from all module score records.
+     * Assigns a letter grade and marks the scan Complete.
+     * If an error occurs, marks the scan Failed (best-effort).
+     * @param scanId The ID of the HealthScan__c to finalise
+     */
     public static void finaliseScan(Id scanId) {
         try {
             Decimal composite = 0;

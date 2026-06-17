@@ -1,5 +1,12 @@
+/**
+ * Central constants and lazy-loaded configuration gateway for the health check framework.
+ * Provides access to Custom Metadata Type (CMT) definitions merged with admin-configured overrides.
+ */
 public class OrgHealthConstants {
 
+    /**
+     * @description Module identifiers matching OrgHealthModuleConfig__mdt.Module__c values.
+     */
     public static final String MODULE_SECURITY       = 'Security';
     public static final String MODULE_AUTOMATION     = 'Automation';
     public static final String MODULE_CODE_QUALITY   = 'CodeQuality';
@@ -21,6 +28,10 @@ public class OrgHealthConstants {
     private static Map<String, OrgHealthSeverityConfig__mdt>  severityConfigs;
     private static Map<String, OrgHealthCheckpointConfig__mdt> checkpointConfigs;
 
+    /**
+     * Returns the module configuration map keyed by Module__c (lazy-loaded).
+     * @return Map<Module__c, OrgHealthModuleConfig__mdt>
+     */
     public static Map<String, OrgHealthModuleConfig__mdt> getModuleConfigs() {
         if (moduleConfigs == null) {
             moduleConfigs = new Map<String, OrgHealthModuleConfig__mdt>();
@@ -34,6 +45,11 @@ public class OrgHealthConstants {
         return moduleConfigs;
     }
 
+    /**
+     * Returns the severity configuration map keyed by Severity__c (lazy-loaded).
+     * Maps severity levels (Critical, High, Medium, Low, Info) to their score deductions.
+     * @return Map<Severity__c, OrgHealthSeverityConfig__mdt>
+     */
     public static Map<String, OrgHealthSeverityConfig__mdt> getSeverityConfigs() {
         if (severityConfigs == null) {
             severityConfigs = new Map<String, OrgHealthSeverityConfig__mdt>();
@@ -58,6 +74,11 @@ public class OrgHealthConstants {
         severityConfigs = mock;
     }
 
+    /**
+     * Returns the checkpoint configuration map keyed by CheckpointKey__c (lazy-loaded).
+     * Each checkpoint is a per-module check that can be individually enabled/disabled.
+     * @return Map<CheckpointKey__c, OrgHealthCheckpointConfig__mdt>
+     */
     public static Map<String, OrgHealthCheckpointConfig__mdt> getCheckpointConfigs() {
         if (checkpointConfigs == null) {
             checkpointConfigs = new Map<String, OrgHealthCheckpointConfig__mdt>();
@@ -96,6 +117,12 @@ public class OrgHealthConstants {
         checkpointConfigs = mock;
     }
 
+    /**
+     * Maps a composite score (0–100) to a letter grade.
+     * A: 90–100, B: 75–89, C: 60–74, D: 40–59, F: 0–39.
+     * @param score The composite score (0–100)
+     * @return Letter grade (A–F)
+     */
     public static String calculateGrade(Decimal score) {
         if (score >= 90) return 'A';
         if (score >= 75) return 'B';

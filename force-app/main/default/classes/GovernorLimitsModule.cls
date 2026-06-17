@@ -1,3 +1,7 @@
+/**
+ * Governor limit monitoring using OrgLimits API and Async Apex job queries.
+ * Detects high storage/API/async execution utilisation, async job backlog, and failed jobs.
+ */
 public class GovernorLimitsModule extends OrgHealthBaseModule {
 
     private static final Decimal STORAGE_WARN_PCT = 0.80;
@@ -6,6 +10,10 @@ public class GovernorLimitsModule extends OrgHealthBaseModule {
     private static final Integer BATCH_BACKLOG_WARN = 10;
     private static final Integer FAILED_JOBS_WARN   = 1;
 
+    /**
+     * Constructs the Governor Limits module executor.
+     * @param scanId The HealthScan__c ID to write module results to
+     */
     public GovernorLimitsModule(Id scanId) {
         super(scanId, OrgHealthConstants.MODULE_GOVERNOR_LIMITS);
     }

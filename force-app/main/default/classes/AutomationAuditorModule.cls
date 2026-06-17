@@ -1,5 +1,14 @@
+/**
+ * Automation health checks for Flow, Trigger, and Process Builder configuration.
+ * Detects inactive flows, multiple triggers on the same object, missing duplicate rules,
+ * and deprecated Process Builders.
+ */
 public class AutomationAuditorModule extends OrgHealthBaseModule {
 
+    /**
+     * Constructs the Automation module executor.
+     * @param scanId The HealthScan__c ID to write module results to
+     */
     public AutomationAuditorModule(Id scanId) {
         super(scanId, OrgHealthConstants.MODULE_AUTOMATION);
     }

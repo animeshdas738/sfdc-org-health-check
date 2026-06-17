@@ -1,3 +1,10 @@
+/**
+ * Admin configuration UI for health check modules and checkpoints.
+ * Left panel: module list with enable/disable toggles.
+ * Right panel: checkpoint table for selected module with individual toggles.
+ * Changes are staged locally and committed in one Save call.
+ */
+
 import { LightningElement, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getConfig  from '@salesforce/apex/OrgHealthConfigController.getConfig';
@@ -11,12 +18,19 @@ export default class OrgHealthConfig extends LightningElement {
 
     _pendingChanges = {};   // configKey → Boolean
 
+    /**
+     * Lifecycle hook: fetch config on component initialization.
+     */
     connectedCallback() {
         this._loadConfig();
     }
 
     // ── Data load ────────────────────────────────────────────────────────────
 
+    /**
+     * Fetches the full config (modules + checkpoints + overrides) from the controller.
+     * @private
+     */
     async _loadConfig() {
         this.isLoading = true;
         try {
@@ -32,6 +46,13 @@ export default class OrgHealthConfig extends LightningElement {
         }
     }
 
+    /**
+     * Augments a module with UI state: applies pending changes, computes selection class,
+     * counts enabled checkpoints.
+     * @private
+     * @param {Object} m - The module object from the controller
+     * @returns {Object} Decorated module with UI properties
+     */
     _decorateModule(m) {
         const checkpoints = (m.checkpoints || []).map(cp => ({
             ...cp,
@@ -70,6 +91,10 @@ export default class OrgHealthConfig extends LightningElement {
 
     // ── Handlers ─────────────────────────────────────────────────────────────
 
+    /**
+     * Event handler: select a module to display its checkpoints in the right panel.
+     * @private
+     */
     handleModuleSelect(evt) {
         this.selectedModuleKey = evt.currentTarget.dataset.moduleKey;
         this.modules = this.modules.map(m => ({
@@ -78,6 +103,11 @@ export default class OrgHealthConfig extends LightningElement {
         }));
     }
 
+    /**
+     * Event handler: a module or checkpoint toggle was changed.
+     * Stages the change in _pendingChanges (no server call yet).
+     * @private
+     */
     handleToggle(evt) {
         const configKey = evt.target.dataset.configKey;
         const isEnabled = evt.target.checked;
@@ -85,6 +115,12 @@ export default class OrgHealthConfig extends LightningElement {
         this.modules = this.modules.map(m => this._decorateModule(m));
     }
 
+    /**
+     * Event handler: commit all pending changes to the server.
+     * Calls saveConfig() and shows a toast notification on success/error.
+     * Clears pending changes and reloads config on success.
+     * @private
+     */
     async handleSave() {
         if (!this.hasPendingChanges) return;
         this.isLoading = true;
@@ -103,16 +139,33 @@ export default class OrgHealthConfig extends LightningElement {
         }
     }
 
+    /**
+     * Prevents an event from bubbling (used when clicking toggles in the module list).
+     * @private
+     */
     stopPropagation(evt) {
         evt.stopPropagation();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    /**
+     * Dispatches a toast notification to the user.
+     * @private
+     * @param {string} title - Toast title
+     * @param {string} message - Toast message
+     * @param {string} variant - success, error, warning, or info
+     */
     _toast(title, message, variant) {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
 
+    /**
+     * Extracts a user-friendly error message from a Salesforce API error object.
+     * @private
+     * @param {Object} e - Error object (may have body.message)
+     * @returns {string} Error message or fallback text
+     */
     _errorMessage(e) {
         return (e && e.body && e.body.message) ? e.body.message : 'An unexpected error occurred.';
     }

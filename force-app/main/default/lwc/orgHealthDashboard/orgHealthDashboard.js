@@ -1,3 +1,9 @@
+/**
+ * Main org health dashboard.
+ * Displays composite health score, module breakdown, score trend, and findings list.
+ * Supports running a new scan with real-time per-module progress bars.
+ */
+
 import { LightningElement, wire, track } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import getLatestScan         from '@salesforce/apex/OrgHealthDashboardController.getLatestScan';
@@ -8,6 +14,7 @@ import triggerScan           from '@salesforce/apex/OrgHealthDashboardController
 import getScanStatus         from '@salesforce/apex/OrgHealthDashboardController.getScanStatus';
 import getScanModuleProgress from '@salesforce/apex/OrgHealthDashboardController.getScanModuleProgress';
 
+/** Poll interval (milliseconds) during scan execution. */
 const POLL_MS = 3000;
 
 const MODULE_CHAIN = ['Security', 'Automation', 'CodeQuality', 'Metadata', 'DataQuality', 'GovernorLimits'];
@@ -154,6 +161,11 @@ export default class OrgHealthDashboard extends LightningElement {
 
     // ── Event handlers ─────────────────────────────────────────────────────
 
+    /**
+     * Event handler: Run New Scan button clicked.
+     * Triggers a scan and starts polling for progress.
+     * @async
+     */
     async handleRunScan() {
         this.isScanning   = true;
         this.scanModules  = [];
@@ -173,6 +185,13 @@ export default class OrgHealthDashboard extends LightningElement {
 
     // ── Polling ────────────────────────────────────────────────────────────
 
+    /**
+     * Starts a polling interval to monitor scan progress.
+     * Fetches status and per-module progress every POLL_MS milliseconds.
+     * Stops when Status__c changes from 'In Progress' and refreshes all wired data.
+     * @private
+     * @async
+     */
     _startPolling() {
         this._pollTimer = setInterval(async () => {
             try {
@@ -202,6 +221,10 @@ export default class OrgHealthDashboard extends LightningElement {
         }, POLL_MS);
     }
 
+    /**
+     * Stops the polling interval if active.
+     * @private
+     */
     _stopPolling() {
         if (this._pollTimer) {
             clearInterval(this._pollTimer);
@@ -209,6 +232,9 @@ export default class OrgHealthDashboard extends LightningElement {
         }
     }
 
+    /**
+     * Lifecycle hook: stop polling if the component is destroyed while a scan is in flight.
+     */
     disconnectedCallback() {
         this._stopPolling();
     }

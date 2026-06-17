@@ -1,5 +1,14 @@
+/**
+ * Security checks for permission configuration misalignment and access control gaps.
+ * Detects Modify/View All Data permissions on non-admin profiles, sharing rule bypasses,
+ * guest user access to custom objects, and missing IP range restrictions.
+ */
 public class SecurityScannerModule extends OrgHealthBaseModule {
 
+    /**
+     * Constructs the Security module executor.
+     * @param scanId The HealthScan__c ID to write module results to
+     */
     public SecurityScannerModule(Id scanId) {
         super(scanId, OrgHealthConstants.MODULE_SECURITY);
     }

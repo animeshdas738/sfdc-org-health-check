@@ -1,13 +1,29 @@
+/**
+ * Score trend chart using Chart.js.
+ * Displays composite health scores over the last N scans with grade threshold lines.
+ * Colors each data point by grade (green/yellow/red).
+ */
+
 import { LightningElement, api, track } from 'lwc';
 import { loadScript }                   from 'lightning/platformResourceLoader';
 import chartjs                          from '@salesforce/resourceUrl/chartjs';
 
+/**
+ * Maps a score to a colour by grade: A (green), B–C (orange), D+ (red).
+ * @param {number} score - Composite health score (0–100)
+ * @returns {string} Hex colour code
+ */
 function gradeColor(score) {
     if (score >= 75) return '#2e844a';
     if (score >= 60) return '#dd7a01';
     return '#ea001e';
 }
 
+/**
+ * Formats an ISO timestamp to a short date string (e.g., "15 Jun").
+ * @param {string} iso - ISO 8601 datetime string
+ * @returns {string} Formatted date (e.g., "15 Jun")
+ */
 function shortDate(iso) {
     if (!iso) return '';
     const d = new Date(iso);
@@ -15,15 +31,23 @@ function shortDate(iso) {
 }
 
 export default class OrgHealthTrendChart extends LightningElement {
+    /** @type {Array<HealthScan__c>} Array of completed scans (oldest to newest). */
     @api trend = [];
 
     @track _libLoaded = false;
     _chart;
 
+    /**
+     * Checks if there is enough trend data to render the chart.
+     * @returns {boolean} True if trend has at least 2 scans
+     */
     get hasTrend() {
         return (this.trend || []).length >= 2;
     }
 
+    /**
+     * Lifecycle hook: load Chart.js library and render chart once available.
+     */
     connectedCallback() {
         if (!this._libLoaded) {
             loadScript(this, chartjs)
@@ -35,13 +59,18 @@ export default class OrgHealthTrendChart extends LightningElement {
         }
     }
 
-    // Re-render whenever the parent passes fresh data
+    /**
+     * Lifecycle hook: re-render the chart whenever new trend data arrives from the parent.
+     */
     renderedCallback() {
         if (this._libLoaded && this.hasTrend) {
             this._renderChart();
         }
     }
 
+    /**
+     * Lifecycle hook: destroy the Chart.js instance to avoid memory leaks.
+     */
     disconnectedCallback() {
         if (this._chart) {
             this._chart.destroy();
@@ -49,6 +78,12 @@ export default class OrgHealthTrendChart extends LightningElement {
         }
     }
 
+    /**
+     * Renders or updates the trend chart using Chart.js.
+     * Displays scores over time with dashed grade threshold lines (A/B/C/D).
+     * Data points are coloured by grade.
+     * @private
+     */
     _renderChart() {
         if (!this._libLoaded || !this.hasTrend) return;
 
@@ -146,7 +181,13 @@ export default class OrgHealthTrendChart extends LightningElement {
         this._chart = new Chart(canvas, config);
     }
 
-    // Custom Chart.js plugin: draws dashed grade threshold lines
+    /**
+     * Custom Chart.js plugin that draws dashed horizontal lines at each grade threshold
+     * (A/B/C/D) and labels them to the right of the chart area.
+     * @private
+     * @param {Array<{score: number, color: string, label: string}>} gradeLines - Grade thresholds
+     * @returns {Object} Chart.js plugin object
+     */
     _gradeLinesPlugin(gradeLines) {
         return {
             id: 'gradeLinesPlugin',

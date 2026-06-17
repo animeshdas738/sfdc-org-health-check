@@ -1,7 +1,15 @@
+/**
+ * Apex controller backing the orgHealthConfig LWC (admin config UI).
+ * Provides merged module and checkpoint config (CMT + Custom Setting overrides)
+ * and persists admin-set toggles.
+ */
 public with sharing class OrgHealthConfigController {
 
     // ── Wrappers ───────────────────────────────────────────────────────────────
 
+    /**
+     * Represents a health check module with its enabled state and nested checkpoints.
+     */
     public class ModuleConfig {
         @AuraEnabled public String            moduleKey;
         @AuraEnabled public String            label;
@@ -11,6 +19,9 @@ public with sharing class OrgHealthConfigController {
         @AuraEnabled public List<CheckpointConfig> checkpoints;
     }
 
+    /**
+     * Represents an individual health check (checkpoint) with its enabled state and metadata.
+     */
     public class CheckpointConfig {
         @AuraEnabled public String  checkpointKey;
         @AuraEnabled public String  label;
@@ -19,6 +30,9 @@ public with sharing class OrgHealthConfigController {
         @AuraEnabled public Integer displayOrder;
     }
 
+    /**
+     * Represents a config change to persist (e.g., enabling/disabling a module or checkpoint).
+     */
     public class SavePayload {
         @AuraEnabled public String  configKey;
         @AuraEnabled public Boolean isEnabled;
@@ -27,8 +41,10 @@ public with sharing class OrgHealthConfigController {
     // ── Read ───────────────────────────────────────────────────────────────────
 
     /**
-     * Returns the full merged config: CMT definitions for modules and checkpoints,
-     * overlaid with any admin overrides from OrgHealthConfigOverride__c.
+     * Retrieves the full configuration: module and checkpoint definitions (from CMT)
+     * merged with admin-set overrides (from Custom Setting).
+     * Each module includes its enabled state and a nested list of checkpoints with their states.
+     * @return List of ModuleConfig objects in MODULE_CHAIN order
      */
     @AuraEnabled(cacheable=false)
     public static List<ModuleConfig> getConfig() {
@@ -92,8 +108,11 @@ public with sharing class OrgHealthConfigController {
     // ── Write ──────────────────────────────────────────────────────────────────
 
     /**
-     * Persists admin toggle choices as OrgHealthConfigOverride__c records.
-     * Uses the Name field (= configKey) as the upsert key.
+     * Persists config changes to OrgHealthConfigOverride__c (List Custom Setting).
+     * Each change is a module or checkpoint toggle; existing records are updated,
+     * new ones are inserted.
+     * Uses the Name field (configKey) as the natural key.
+     * @param changes List of SavePayload objects with configKey and isEnabled state
      */
     @AuraEnabled
     public static void saveConfig(List<SavePayload> changes) {

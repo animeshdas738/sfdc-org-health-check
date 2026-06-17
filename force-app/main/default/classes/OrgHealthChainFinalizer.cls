@@ -14,11 +14,21 @@ public class OrgHealthChainFinalizer implements Finalizer {
     private final Id     scanId;
     private final String moduleName;
 
+    /**
+     * Constructs the finalizer.
+     * @param scanId The HealthScan__c being executed
+     * @param moduleName The currently executing module name
+     */
     public OrgHealthChainFinalizer(Id scanId, String moduleName) {
         this.scanId     = scanId;
         this.moduleName = moduleName;
     }
 
+    /**
+     * Handles post-execution logic: either chains to the next enabled module or finalises the scan.
+     * If the parent job threw an exception, marks the scan Failed.
+     * @param ctx The FinalizerContext with job result information
+     */
     public void execute(FinalizerContext ctx) {
         if (ctx.getResult() == ParentJobResult.UNHANDLED_EXCEPTION) {
             Exception e = ctx.getException();
@@ -45,6 +55,12 @@ public class OrgHealthChainFinalizer implements Finalizer {
         }
     }
 
+    /**
+     * Finds the next enabled module in the chain after currentModule.
+     * Respects admin overrides: skips any module where isEnabled() returns false.
+     * @param currentModule The current module name
+     * @return The next enabled module name, or null if no more modules exist
+     */
     private static String nextEnabledModule(String currentModule) {
         List<String> chain = OrgHealthConstants.MODULE_CHAIN;
         Map<String, OrgHealthModuleConfig__mdt> configs = OrgHealthConstants.getModuleConfigs();
@@ -60,6 +76,10 @@ public class OrgHealthChainFinalizer implements Finalizer {
         return null;
     }
 
+    /**
+     * Marks the scan as Failed with the given error message (best-effort, silent on failure).
+     * @param errorMsg Error message (truncated to 32,000 characters)
+     */
     private void markScanFailed(String errorMsg) {
         try {
             update new HealthScan__c(

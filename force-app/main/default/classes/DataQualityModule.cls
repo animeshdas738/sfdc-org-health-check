@@ -1,9 +1,18 @@
+/**
+ * Data quality checks for duplicate records, blank key fields, and stale pipeline data.
+ * Detects duplicate accounts/contacts, high blank rates on critical fields,
+ * and stale open opportunities/cases.
+ */
 public class DataQualityModule extends OrgHealthBaseModule {
 
     private static final Decimal BLANK_RATE_THRESHOLD    = 0.15;
     private static final Integer STALE_OPPORTUNITY_DAYS  = 180;
     private static final Integer STALE_CASE_DAYS         = 90;
 
+    /**
+     * Constructs the Data Quality module executor.
+     * @param scanId The HealthScan__c ID to write module results to
+     */
     public DataQualityModule(Id scanId) {
         super(scanId, OrgHealthConstants.MODULE_DATA_QUALITY);
     }
