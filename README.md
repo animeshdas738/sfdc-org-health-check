@@ -22,6 +22,37 @@ The `sfdx-project.json` file contains useful configuration information for your 
 An enterprise-grade Apex framework that automatically scans your Salesforce org across 6 health dimensions and produces a scored, actionable audit report.
 
 See [`docs/object-model.md`](docs/object-model.md) for the full data model, field reference, and design decisions.
+See [`docs/solution-architecture.md`](docs/solution-architecture.md) for module architecture and configuration extensibility.
+See [`docs/testing-guide.md`](docs/testing-guide.md) for comprehensive testing documentation.
+
+---
+
+## Features
+
+- **6 Health Dimensions**: Security, Automation, Code Quality, Metadata, Data Quality, Governor Limits
+- **Weighted Scoring**: Configurable module weights (default: 30/20/20/10/10/10)
+- **Async Chaining**: Queueable jobs execute in sequence, respecting governor limits via Finalizer pattern
+- **25 Built-in Checkpoints**: Individual checks per module, each independently enable/disable-able
+- **Two-Layer Config**: CMT (developer defaults) + Custom Settings (admin overrides)
+- **Configuration UI**: LWC admin panel to toggle modules and checkpoints
+- **Comprehensive Testing**: 59+ unit tests covering orchestration, config, controllers, and modules
+
+### Architecture Highlights
+
+**Two-Layer Configuration Pattern**
+- **Layer 1 (CMT)**: Developer catalog — module weights, checkpoint definitions, defaults
+- **Layer 2 (Custom Settings)**: Admin overrides — runtime toggles for modules/checkpoints
+- **Gateway**: `OrgHealthConstants.isEnabled()` merges both layers transparently
+
+**Async Execution with Finalizer Pattern**
+- Avoids Queueable stack depth limit (5 levels in Dev/Sandbox)
+- Queueables enqueued from Finalizers start at depth 1
+- Finalizer catches exceptions and marks failed scans appropriately
+
+**Per-Checkpoint Gating**
+- 25 individual checkpoints, each independently configurable
+- Admins disable checks without code changes
+- Auto-discovered by config UI — no hardcoded lists
 
 ---
 
@@ -39,10 +70,18 @@ For same-org callouts, add your org's domain to Remote Site Settings:
 `Setup → Security → Remote Site Settings → New`
 URL: `https://yourorg.my.salesforce.com`
 
-### 3. Deploy classes
+### 3. Deploy all components
 ```bash
 sf project deploy start --source-dir force-app
 ```
+
+This deploys:
+- Apex classes (modules, controllers, orchestrator)
+- LWC components (dashboard, config, charts)
+- Custom objects and fields
+- Custom Metadata Type definitions (modules, checkpoints, severities)
+- 25 checkpoint seed records
+- Custom Settings structure
 
 ### 4. Schedule the weekly scan
 ```apex
@@ -55,6 +94,49 @@ System.schedule('Org Health Weekly Scan', cronExp, new OrgHealthScheduler());
 Id scanId = OrgHealthScanOrchestrator.startScan();
 System.debug('Scan started: ' + scanId);
 ```
+
+---
+
+## Running Tests
+
+The application includes **59 comprehensive unit tests** covering all core functionality.
+
+### Run all Org Health tests
+```bash
+sf apex run test --class-names OrgHealthScanOrchestratorTest,OrgHealthConstantsTest,OrgHealthConfigControllerTest,OrgHealthDashboardControllerTest,OrgHealthModuleFactoryTest,SecurityScannerModuleTest --wait 10
+```
+
+### Run all tests in the org
+```bash
+sf apex run test --wait 15
+```
+
+### Test Coverage (by component)
+| Component | Tests | Status |
+|-----------|-------|--------|
+| OrgHealthScanOrchestrator | 8 | ✅ |
+| OrgHealthConstants | 16 | ✅ |
+| OrgHealthModuleFactory | 9 | ✅ |
+| OrgHealthConfigController | 10 | ✅ |
+| OrgHealthDashboardController | 14 | ✅ |
+| SecurityScannerModule | 8 | ✅ |
+| **Total** | **65** | **100%** |
+
+For detailed testing documentation, see [`docs/testing-guide.md`](docs/testing-guide.md).
+
+---
+
+## Configuration UI
+
+Org admins can use the **Org Health Config** LWC to toggle modules and individual checkpoints at runtime without code changes.
+
+1. Add the `orgHealthConfig` LWC to a Lightning page
+2. Administrators can enable/disable:
+   - Individual modules (affects scan execution)
+   - Individual checkpoints within each module
+3. Changes take effect on the next scan
+
+Configuration is stored in `OrgHealthConfigOverride__c` (List Custom Setting) and can be backed up/deployed like standard metadata.
 
 ---
 
@@ -183,13 +265,31 @@ async handleScanClick() {
 
 ---
 
-## Extending with a New Module
+## Extending the Framework
+
+### Adding a New Module
 
 1. Create a new class extending `OrgHealthBaseModule`
 2. Implement `runChecks()` — call `addFinding()` for each issue found
 3. Register it in `OrgHealthModuleFactory`
 4. Add it to `OrgHealthConstants.MODULE_CHAIN`
-5. Add its weight in `OrgHealthScanOrchestrator.MODULE_WEIGHTS` (adjust others so total = 100)
+5. Add a weight record to `OrgHealthModuleConfig__mdt` (ensure weights sum to 100)
+6. Write tests extending the `ModuleTest` pattern in `SecurityScannerModuleTest`
+
+### Adding a New Checkpoint
+
+1. Create a new `OrgHealthCheckpointConfig__mdt` record with:
+   - `CheckpointKey__c`: dot-separated key (e.g., `ModuleName.CheckpointName`)
+   - `Module__c`: parent module name
+   - `IsEnabledByDefault__c`: default enabled state
+   - `Description__c`: description for the config UI
+2. In your check method, add the gate:
+   ```apex
+   if (!OrgHealthConstants.isCheckpointEnabled('Module.CheckpointName')) return;
+   ```
+3. No controller or dashboard changes needed — the config UI and orchestrator auto-discover new checkpoints
+
+See [`docs/solution-architecture.md`](docs/solution-architecture.md) for detailed extensibility patterns.
 
 ---
 
