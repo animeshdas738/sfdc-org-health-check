@@ -135,16 +135,17 @@ private class OrgHealthDashboardControllerTest {
 
     @isTest
     static void testTriggerScanInitiatesNewScan() {
+        Id scanId;
         Test.startTest();
-        Id scanId = OrgHealthDashboardController.triggerScan();
+        scanId = OrgHealthDashboardController.triggerScan();
         Test.stopTest();
 
         Assert.isNotNull(scanId, 'Should return a scan ID');
 
-        HealthScan__c scan = [SELECT Status__c, TriggerType__c FROM HealthScan__c WHERE Id = :scanId];
+        HealthScan__c scan = [SELECT Status__c, TriggerType__c, ScanStartTime__c FROM HealthScan__c WHERE Id = :scanId];
         Assert.areEqual('Manual', scan.TriggerType__c, 'Should be triggered manually');
-        // Status may change due to execution context, so just verify it's set
         Assert.isNotNull(scan.Status__c, 'Scan should have a status');
+        Assert.isNotNull(scan.ScanStartTime__c, 'Scan should have a start time');
     }
 
     @isTest
@@ -166,8 +167,9 @@ private class OrgHealthDashboardControllerTest {
         HealthScan__c scan = OrgHealthTestFactory.createScan('In Progress', 'Manual');
         insert scan;
 
-        HealthModuleScore__c ms1 = OrgHealthTestFactory.createModuleScore(scan.Id, 'Security', 85, 'In Progress');
-        HealthModuleScore__c ms2 = OrgHealthTestFactory.createModuleScore(scan.Id, 'CodeQuality', 75, 'Pending');
+        // Use valid status values: Complete, Failed, Skipped
+        HealthModuleScore__c ms1 = OrgHealthTestFactory.createModuleScore(scan.Id, 'Security', 85, 'Complete');
+        HealthModuleScore__c ms2 = OrgHealthTestFactory.createModuleScore(scan.Id, 'CodeQuality', 75, 'Complete');
         insert new List<HealthModuleScore__c>{ms1, ms2};
 
         Test.startTest();
@@ -175,6 +177,7 @@ private class OrgHealthDashboardControllerTest {
         Test.stopTest();
 
         Assert.areEqual(2, progress.size(), 'Should return all module progress');
+        Assert.isNotNull(progress[0].Module__c, 'Module progress should have module name');
     }
 
     @isTest

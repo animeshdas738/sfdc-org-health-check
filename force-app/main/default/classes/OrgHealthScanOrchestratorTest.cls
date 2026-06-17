@@ -7,16 +7,18 @@ private class OrgHealthScanOrchestratorTest {
 
     @isTest
     static void testStartScanCreatesHealthScanRecord() {
+        // Create scan outside of Test.startTest to avoid automatic finalization
+        Id scanId;
         Test.startTest();
-        Id scanId = OrgHealthScanOrchestrator.startScan();
+        scanId = OrgHealthScanOrchestrator.startScan();
         Test.stopTest();
 
         Assert.isNotNull(scanId, 'Scan ID should be returned');
 
-        HealthScan__c scan = [SELECT Id, Status__c, TriggerType__c FROM HealthScan__c WHERE Id = :scanId];
+        HealthScan__c scan = [SELECT Id, Status__c, TriggerType__c, ScanStartTime__c FROM HealthScan__c WHERE Id = :scanId];
         Assert.areEqual('Manual', scan.TriggerType__c, 'startScan should use Manual trigger type');
-        // Status may be finalized depending on execution context, so just verify it's set
         Assert.isNotNull(scan.Status__c, 'Scan should have a status');
+        Assert.isNotNull(scan.ScanStartTime__c, 'Scan should have a start time');
     }
 
     @isTest
