@@ -98,9 +98,8 @@ public class SecurityScannerModule extends OrgHealthBaseModule {
                     profiles.size() + ' profile(s) bypass sharing rules on ' + obj,
                     profiles.size() + ' profiles or permission sets have ViewAllRecords or ' +
                     'ModifyAllRecords on ' + obj + '. This circumvents the sharing rule and role ' +
-                    'hierarchy configuration for these users. Profiles: ' +
-                    String.join(profiles.size() <= 8 ? profiles : firstN(profiles, 8), ', ') +
-                    (profiles.size() > 8 ? ' … and ' + (profiles.size() - 8) + ' more.' : '.'),
+                    'hierarchy configuration for these users.\n\n' +
+                    formatComponentListWithIntro('Affected profiles', profiles),
                     'Review whether each profile genuinely needs row-level bypass on ' + obj + '. ' +
                     'Restrict this to a minimum set of integration or admin profiles and remove it ' +
                     'from general user profiles.',
@@ -141,14 +140,18 @@ public class SecurityScannerModule extends OrgHealthBaseModule {
 
             if (accessibleObjects.isEmpty()) continue;
 
+            String guestAccessDesc = 'Guest user "' + gu.Name + '" (Profile: ' + gu.Profile.Name +
+                                     ') has read access to ' + accessibleObjects.size() +
+                                     ' custom object(s) without authentication:\n' +
+                                     formatComponentList(accessibleObjects);
+            if (!writableObjects.isEmpty()) {
+                guestAccessDesc += '\n\nWrite access on:\n' + formatComponentList(writableObjects);
+            }
             addFinding(
                 'Critical',
                 'Guest User Access',
                 'Guest profile can access ' + accessibleObjects.size() + ' custom object(s)',
-                'Guest user "' + gu.Name + '" (Profile: ' + gu.Profile.Name + ') has read access ' +
-                'to ' + accessibleObjects.size() + ' custom object(s) without authentication: ' +
-                String.join(accessibleObjects, ', ') + '.' +
-                (writableObjects.isEmpty() ? '' : ' Write access on: ' + String.join(writableObjects, ', ') + '.'),
+                guestAccessDesc,
                 'Remove unnecessary object permissions from the guest user profile. ' +
                 'Expose only objects explicitly required for your Experience Cloud site or public-facing ' +
                 'integration. Guest users represent the highest-risk access point in the org as they bypass authentication.',

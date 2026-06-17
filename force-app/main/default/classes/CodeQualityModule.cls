@@ -60,9 +60,10 @@ public class CodeQualityModule extends OrgHealthBaseModule {
                 'High',
                 'Test Coverage',
                 zeroCoverage.size() + ' class(es)/trigger(s) have zero test coverage',
-                'The following Apex components have no automated test coverage: ' +
-                joinCapped(zeroCoverage, 10) +
-                ' Zero-coverage code cannot be deployed to a production org.',
+                formatComponentListWithIntro(
+                    'The following Apex components have no automated test coverage',
+                    zeroCoverage
+                ) + '\n\nZero-coverage code cannot be deployed to a production org.',
                 'Write unit tests for each of these classes. A good starting point is to test ' +
                 'every public method with at least one happy-path and one failure-path test case. ' +
                 'Use @TestSetup to share fixture data and keep tests fast.',
@@ -76,8 +77,10 @@ public class CodeQualityModule extends OrgHealthBaseModule {
                 'Medium',
                 'Test Coverage',
                 lowCoverage.size() + ' class(es)/trigger(s) below ' + COVERAGE_THRESHOLD + '% coverage',
-                'The following Apex components are below the ' + COVERAGE_THRESHOLD + '% threshold: ' +
-                joinCapped(lowCoverage, 10),
+                formatComponentListWithIntro(
+                    'The following Apex components are below the ' + COVERAGE_THRESHOLD + '% threshold',
+                    lowCoverage
+                ),
                 'Add tests that cover branching logic, error handling, and governor-limit edge cases. ' +
                 'Use System.assert() to validate outputs, not just to hit lines.',
                 'Org',
@@ -111,9 +114,10 @@ public class CodeQualityModule extends OrgHealthBaseModule {
                 'High',
                 'Code Anti-patterns',
                 violators.size() + ' class(es) may contain SOQL inside a loop',
-                'The following classes appear to execute SOQL inside a for or while loop: ' +
-                joinCapped(violators, 15) +
-                ' Each iteration consumes one of the 100 SOQL queries per-transaction governor limit.',
+                formatComponentListWithIntro(
+                    'The following classes appear to execute SOQL inside a for or while loop',
+                    violators
+                ) + '\n\nEach iteration consumes one of the 100 SOQL queries per-transaction governor limit.',
                 'Collect all IDs before the loop, execute a single bulkified query outside the loop, ' +
                 'and use a Map to look up values inside the loop. Example: ' +
                 'Map<Id, Account> m = new Map<Id, Account>([SELECT Id, Name FROM Account WHERE Id IN :ids]);',
@@ -176,9 +180,10 @@ public class CodeQualityModule extends OrgHealthBaseModule {
             'Low',
             'Code Maintainability',
             largeClasses.size() + ' class(es) are very large',
-            'The following classes exceed ~' + (MAX_CLASS_CHARS / 50) + ' estimated lines: ' +
-            joinCapped(largeClasses, 10) +
-            ' Large classes are harder to review, test, and maintain and typically signal ' +
+            formatComponentListWithIntro(
+                'The following classes exceed ~' + (MAX_CLASS_CHARS / 50) + ' estimated lines',
+                largeClasses
+            ) + '\n\nLarge classes are harder to review, test, and maintain and typically signal ' +
             'missing separation of concerns.',
             'Break large classes into focused service, selector, and domain classes. ' +
             'Adopt a layered architecture (FFLIB or similar) to distribute responsibility. ' +
@@ -210,9 +215,11 @@ public class CodeQualityModule extends OrgHealthBaseModule {
             'Medium',
             'Deprecated API Versions',
             oldClasses.size() + ' class(es) on API version < ' + MIN_API_VERSION + '.0',
-            'The following Apex classes are compiled against API v' + MIN_API_VERSION +
-            ' (Summer \'20) or older: ' + joinCapped(oldClasses, 10) +
-            ' Old API versions may use deprecated platform behaviours and miss improvements ' +
+            formatComponentListWithIntro(
+                'The following Apex classes are compiled against API v' + MIN_API_VERSION +
+                ' (Summer \'20) or older',
+                oldClasses
+            ) + '\n\nOld API versions may use deprecated platform behaviours and miss improvements ' +
             'such as null-safe operators and enhanced governor limit reporting.',
             'Update the apiVersion in each class\'s -meta.xml file to v66.0 (or the current release). ' +
             'Use the Salesforce CLI: sf project retrieve start --metadata ApexClass, then update the ' +
@@ -264,9 +271,10 @@ public class CodeQualityModule extends OrgHealthBaseModule {
                 'Medium',
                 'Code Documentation',
                 noDoc.size() + ' class(es) have no ApexDoc comments',
-                'The following Apex classes contain no ApexDoc (/** … */) blocks at all: ' +
-                joinCapped(noDoc, 15) +
-                ' Undocumented code increases onboarding time and makes maintenance error-prone.',
+                formatComponentListWithIntro(
+                    'The following Apex classes contain no ApexDoc (/** … */) blocks at all',
+                    noDoc
+                ) + '\n\nUndocumented code increases onboarding time and makes maintenance error-prone.',
                 'Add a class-level /** @description … */ block and a method-level comment for every ' +
                 'public or global method. Use ApexDoc tags: @description, @param, @return, @throws. ' +
                 'VS Code with the Salesforce Extension Pack can generate stubs automatically.',
@@ -280,9 +288,10 @@ public class CodeQualityModule extends OrgHealthBaseModule {
                 'Low',
                 'Code Documentation',
                 partialDoc.size() + ' class(es) have fewer ApexDoc comments than public methods',
-                'The following classes appear to have undocumented public methods: ' +
-                joinCapped(partialDoc, 10) +
-                ' Each public or global method should have a /** … */ comment describing its purpose, ' +
+                formatComponentListWithIntro(
+                    'The following classes appear to have undocumented public methods',
+                    partialDoc
+                ) + '\n\nEach public or global method should have a /** … */ comment describing its purpose, ' +
                 'parameters, and return value.',
                 'Review each flagged class and add missing ApexDoc blocks. Prioritise methods that are ' +
                 'called by other classes, exposed via @AuraEnabled, or part of a public API contract.',

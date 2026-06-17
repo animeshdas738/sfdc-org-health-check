@@ -210,6 +210,30 @@ public abstract class OrgHealthBaseModule implements Queueable, Database.AllowsC
         return out;
     }
 
+    /**
+     * Formats a list of components for user-friendly display.
+     * Returns all items as a newline-separated list (parsed by the LWC as a formatted list).
+     * Format: "• Item1\n• Item2\n• Item3"
+     */
+    protected String formatComponentList(List<String> items) {
+        if (items.isEmpty()) return '';
+        List<String> formatted = new List<String>();
+        for (String item : items) {
+            formatted.add('• ' + item);
+        }
+        return String.join(formatted, '\n');
+    }
+
+    /**
+     * Formats a list with an intro line and a bulleted component list.
+     * Useful for findings that list multiple components.
+     * Returns: "Intro text:\n• Item1\n• Item2"
+     */
+    protected String formatComponentListWithIntro(String intro, List<String> items) {
+        if (items.isEmpty()) return intro;
+        return intro + ':\n' + formatComponentList(items);
+    }
+
     // ── Exception ────────────────────────────────────────────────────────────
 
     public class OrgHealthException extends Exception {}

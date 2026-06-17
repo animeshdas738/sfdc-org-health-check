@@ -44,9 +44,8 @@ public class AutomationAuditorModule extends OrgHealthBaseModule {
                 'Inactive Automation',
                 names.size() + ' ' + type + ' flow(s) have no active version',
                 names.size() + ' flows of type ' + type + ' have never been activated or were ' +
-                'deactivated without deletion: ' +
-                String.join(names.size() <= 10 ? names : firstN(names, 10), ', ') +
-                (names.size() > 10 ? ' … and ' + (names.size() - 10) + ' more.' : '.'),
+                'deactivated without deletion:\n\n' +
+                formatComponentList(names),
                 'Delete flows that are no longer needed. Inactive flows accumulate as tech debt, ' +
                 'slow down deployments, and confuse developers browsing the org.',
                 type,
@@ -80,8 +79,10 @@ public class AutomationAuditorModule extends OrgHealthBaseModule {
                     'Medium',
                     'Multiple Triggers',
                     obj + ' has ' + triggers.size() + ' active triggers',
-                    'Object ' + obj + ' has ' + triggers.size() + ' active Apex triggers: ' +
-                    String.join(triggers, ', ') + '. Salesforce does not guarantee execution order ' +
+                    formatComponentListWithIntro(
+                        'Object ' + obj + ' has ' + triggers.size() + ' active Apex triggers',
+                        triggers
+                    ) + '\n\nSalesforce does not guarantee execution order ' +
                     'when multiple triggers fire on the same DML event, which can produce ' +
                     'unpredictable or conflicting behaviour.',
                     'Consolidate all triggers on ' + obj + ' into a single trigger that delegates ' +
@@ -146,10 +147,10 @@ public class AutomationAuditorModule extends OrgHealthBaseModule {
             'Medium',
             'Deprecated Automation',
             pbNames.size() + ' active Process Builder(s) should be migrated to Flow',
-            pbNames.size() + ' Process Builder automation(s) are still active: ' +
-            String.join(pbNames.size() <= 10 ? pbNames : firstN(pbNames, 10), ', ') +
-            (pbNames.size() > 10 ? ' … and ' + (pbNames.size() - 10) + ' more.' : '.') +
-            ' Salesforce has announced the retirement of Process Builder in favour of Record-Triggered Flows.',
+            formatComponentListWithIntro(
+                pbNames.size() + ' Process Builder automation(s) are still active',
+                pbNames
+            ) + '\n\nSalesforce has announced the retirement of Process Builder in favour of Record-Triggered Flows.',
             'Use the Flow Builder migration tool (open a Process Builder → Migrate to Flow) to ' +
             'auto-generate an equivalent Record-Triggered Flow. Test thoroughly, then deactivate ' +
             'the Process Builder. Prioritise high-traffic objects first.',

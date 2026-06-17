@@ -202,13 +202,24 @@ export default class OrgHealthDashboard extends LightningElement {
                 this.scanModules = modules || [];
                 if (status.Status__c !== 'In Progress') {
                     this._stopPolling();
+                    // First, update latestScanId to trigger wire refresh
+                    this.latestScanId = this.activeScanId;
+                    // Small delay ensures the wire has started before we hide the progress view
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     this.isScanning = false;
-                    await Promise.all([
-                        refreshApex(this._wiredScan),
-                        refreshApex(this._wiredModuleScores),
-                        refreshApex(this._wiredTrend),
-                        refreshApex(this._wiredFindings)
-                    ]);
+                    // Then refresh all wired data
+                    if (this._wiredScan?.data) {
+                        await refreshApex(this._wiredScan);
+                    }
+                    if (this._wiredModuleScores?.data) {
+                        await refreshApex(this._wiredModuleScores);
+                    }
+                    if (this._wiredTrend?.data) {
+                        await refreshApex(this._wiredTrend);
+                    }
+                    if (this._wiredFindings?.data) {
+                        await refreshApex(this._wiredFindings);
+                    }
                     if (status.Status__c === 'Failed') {
                         this.errorMessage = status.ErrorMessage__c || 'Scan completed with errors.';
                     }

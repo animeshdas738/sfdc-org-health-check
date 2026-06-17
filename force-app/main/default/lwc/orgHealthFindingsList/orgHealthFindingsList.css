@@ -136,8 +136,16 @@
 .detail-body {
     font-size: 13px;
     color: #181818;
-    line-height: 1.5;
+    line-height: 1.6;
     margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+}
+
+.detail-body {
+    /* Handle component lists with bullet points */
+    padding-left: 0;
 }
 
 .detail-recommendation {
@@ -146,6 +154,8 @@
     padding: 8px 10px;
     border-radius: 4px;
     border-left: 3px solid #0176d3;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 /* Empty / loading states */

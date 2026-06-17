@@ -119,10 +119,10 @@ public class MetadataAnalyserModule extends OrgHealthBaseModule {
             'Info',
             'Stale Metadata',
             staleObjects.size() + ' custom object(s) not modified in 3+ years',
-            'The following custom objects have not been modified in over 3 years: ' +
-            String.join(staleObjects.size() <= 10 ? staleObjects : firstN(staleObjects, 10), ', ') +
-            (staleObjects.size() > 10 ? ' … and ' + (staleObjects.size() - 10) + ' more.' : '.') +
-            ' These objects may be legacy data stores no longer in active use.',
+            formatComponentListWithIntro(
+                'The following custom objects have not been modified in over 3 years',
+                staleObjects
+            ) + '\n\nThese objects may be legacy data stores no longer in active use.',
             'Run record count reports for each object. Objects with zero or near-zero records ' +
             'and no references in active Flows or Apex classes are candidates for deletion. ' +
             'Archive the data first if needed.',
@@ -204,9 +204,8 @@ public class MetadataAnalyserModule extends OrgHealthBaseModule {
                 'Field Type Optimisation',
                 obj + ' has ' + fields.size() + ' short TextArea field(s)',
                 fields.size() + ' fields on ' + obj + ' use the TextArea type, which limits ' +
-                'content to 255 characters: ' +
-                String.join(fields.size() <= 6 ? fields : firstN(fields, 6), ', ') +
-                (fields.size() > 6 ? ' … and ' + (fields.size() - 6) + ' more.' : '.'),
+                'content to 255 characters:\n\n' +
+                formatComponentList(fields),
                 'Consider converting these fields to Long Text Area (up to 131,072 chars) or ' +
                 'Rich Text Area if users need formatted content. Verify existing data is within ' +
                 'the new length before converting — data truncation can occur if you downgrade.',

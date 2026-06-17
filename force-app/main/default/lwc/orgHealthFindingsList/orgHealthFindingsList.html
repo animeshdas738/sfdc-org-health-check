@@ -48,9 +48,9 @@
                             <template lwc:if={finding.isExpanded}>
                                 <div class="finding-detail" onclick={handleDetailClick}>
                                     <p class="detail-label">What happened</p>
-                                    <p class="detail-body">{finding.Description__c}</p>
+                                    <div class="detail-body">{finding.Description__c}</div>
                                     <p class="detail-label slds-m-top_small">Recommendation</p>
-                                    <p class="detail-body detail-recommendation">{finding.Recommendation__c}</p>
+                                    <div class="detail-body detail-recommendation">{finding.Recommendation__c}</div>
                                 </div>
                             </template>
                         </li>
